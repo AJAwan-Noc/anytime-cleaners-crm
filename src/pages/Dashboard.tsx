@@ -1,18 +1,18 @@
 import { useAuth } from '@/contexts/AuthContext';
+import KPICards from '@/components/dashboard/KPICards';
+import KanbanBoard from '@/components/dashboard/KanbanBoard';
 
 export default function Dashboard() {
-  const { teamMember, role } = useAuth();
+  const { role } = useAuth();
+  const showKPIs = role === 'admin' || role === 'manager';
 
   return (
     <div>
-      <p className="text-muted-foreground">
-        Welcome back, {teamMember?.name ?? 'User'}. Dashboard coming in Phase 2.
-      </p>
-      {role && (
-        <p className="text-sm text-muted-foreground mt-1">
-          Role: <span className="font-medium capitalize">{role}</span>
-        </p>
-      )}
+      {showKPIs && <KPICards />}
+      <div>
+        <h2 className="text-lg font-semibold mb-3">Lead Pipeline</h2>
+        <KanbanBoard />
+      </div>
     </div>
   );
 }
