@@ -34,7 +34,7 @@ export default function KanbanBoard() {
     queryFn: async () => {
       let query = supabase
         .from('leads')
-        .select('*, assigned_member:team_members!leads_assigned_to_fkey(*)')
+        .select('*')
         .eq('is_archived', false)
         .order('updated_at', { ascending: false });
 
@@ -42,9 +42,24 @@ export default function KanbanBoard() {
         query = query.eq('assigned_to', teamMember.id);
       }
 
-      const { data, error } = await query;
+      const { data: leadsData, error } = await query;
       if (error) throw error;
-      return data as Lead[];
+
+      // Fetch team members separately to avoid FK hint issues
+      const assignedIds = [...new Set((leadsData ?? []).map((l) => l.assigned_to).filter(Boolean))];
+      let membersMap: Record<string, any> = {};
+      if (assignedIds.length > 0) {
+        const { data: members } = await supabase
+          .from('team_members')
+          .select('*')
+          .in('id', assignedIds);
+        (members ?? []).forEach((m) => { membersMap[m.id] = m; });
+      }
+
+      return (leadsData ?? []).map((l) => ({
+        ...l,
+        assigned_member: l.assigned_to ? membersMap[l.assigned_to] ?? null : null,
+      })) as Lead[];
     },
     refetchInterval: 30000,
   });
