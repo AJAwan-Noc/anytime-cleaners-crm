@@ -1,0 +1,151 @@
+import { useState, useMemo } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import {
+  DndContext,
+  DragEndEvent,
+  DragOverlay,
+  DragStartEvent,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  closestCorners,
+} from '@dnd-kit/core';
+import { supabase, N8N_BASE_URL } from '@/lib/supabase';
+import { useAuth } from '@/contexts/AuthContext';
+import { Lead, LeadStage } from '@/types';
+import KanbanColumn from './KanbanColumn';
+import KanbanCard from './KanbanCard';
+import { Skeleton } from '@/components/ui/skeleton';
+import { toast } from 'sonner';
+
+const STAGES: LeadStage[] = ['new_lead', 'contacted', 'not_responding', 'booked', 'not_interested'];
+
+export default function KanbanBoard() {
+  const { role, teamMember } = useAuth();
+  const queryClient = useQueryClient();
+  const [activeId, setActiveId] = useState<string | null>(null);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
+  );
+
+  const { data: leads = [], isLoading } = useQuery({
+    queryKey: ['kanban-leads'],
+    queryFn: async () => {
+      let query = supabase
+        .from('leads')
+        .select('*, assigned_member:team_members!leads_assigned_to_fkey(*)')
+        .eq('is_archived', false)
+        .order('updated_at', { ascending: false });
+
+      if (role === 'agent' && teamMember) {
+        query = query.eq('assigned_to', teamMember.id);
+      }
+
+      const { data, error } = await query;
+      if (error) throw error;
+      return data as Lead[];
+    },
+    refetchInterval: 30000,
+  });
+
+  const columns = useMemo(() => {
+    const map: Record<LeadStage, Lead[]> = {
+      new_lead: [], contacted: [], not_responding: [], booked: [], not_interested: [],
+    };
+    leads.forEach((l) => map[l.stage]?.push(l));
+    return map;
+  }, [leads]);
+
+  const activeLead = activeId ? leads.find((l) => l.id === activeId) : null;
+
+  const handleDragStart = (event: DragStartEvent) => {
+    setActiveId(event.active.id as string);
+  };
+
+  const handleDragEnd = async (event: DragEndEvent) => {
+    setActiveId(null);
+    const { active, over } = event;
+    if (!over) return;
+
+    const lead = leads.find((l) => l.id === active.id);
+    if (!lead) return;
+
+    // Determine new stage: over.id is either a stage (column) or a lead id
+    let newStage: LeadStage;
+    if (STAGES.includes(over.id as LeadStage)) {
+      newStage = over.id as LeadStage;
+    } else {
+      const overLead = leads.find((l) => l.id === over.id);
+      newStage = overLead?.stage ?? lead.stage;
+    }
+
+    if (newStage === lead.stage) return;
+
+    const oldStage = lead.stage;
+
+    // Optimistic update
+    queryClient.setQueryData<Lead[]>(['kanban-leads'], (old) =>
+      old?.map((l) => (l.id === lead.id ? { ...l, stage: newStage } : l))
+    );
+
+    try {
+      const { error } = await supabase
+        .from('leads')
+        .update({ stage: newStage, updated_at: new Date().toISOString() })
+        .eq('id', lead.id);
+
+      if (error) throw error;
+
+      // Fire n8n webhook (fire-and-forget)
+      fetch(`${N8N_BASE_URL}/stage-change`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          lead_id: lead.id,
+          new_stage: newStage,
+          old_stage: oldStage,
+          changed_by: teamMember?.name ?? 'Unknown',
+          lead_name: lead.full_name,
+        }),
+      }).catch(() => {}); // silent fail for webhook
+
+      toast.success(`Moved "${lead.full_name}" to ${newStage.replace(/_/g, ' ')}`);
+      queryClient.invalidateQueries({ queryKey: ['dashboard-kpis'] });
+    } catch {
+      // Rollback
+      queryClient.setQueryData<Lead[]>(['kanban-leads'], (old) =>
+        old?.map((l) => (l.id === lead.id ? { ...l, stage: oldStage } : l))
+      );
+      toast.error('Failed to update lead stage');
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex gap-4 overflow-x-auto pb-4">
+        {STAGES.map((s) => (
+          <Skeleton key={s} className="min-w-[260px] h-96 rounded-lg" />
+        ))}
+      </div>
+    );
+  }
+
+  return (
+    <DndContext
+      sensors={sensors}
+      collisionDetection={closestCorners}
+      onDragStart={handleDragStart}
+      onDragEnd={handleDragEnd}
+    >
+      <div className="flex gap-4 overflow-x-auto pb-4">
+        {STAGES.map((stage) => (
+          <KanbanColumn key={stage} stage={stage} leads={columns[stage]} />
+        ))}
+      </div>
+      <DragOverlay>
+        {activeLead ? <KanbanCard lead={activeLead} /> : null}
+      </DragOverlay>
+    </DndContext>
+  );
+}
