@@ -156,6 +156,7 @@ export default function Team() {
         toast.success('Member updated');
       } else {
         const n8nBase = import.meta.env.VITE_N8N_BASE_URL;
+        console.log('Calling n8n:', `${n8nBase}/create-team-member`);
         const res = await fetch(`${n8nBase}/create-team-member`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -179,6 +180,7 @@ export default function Team() {
     setDeleting(true);
     try {
       const n8nBase = import.meta.env.VITE_N8N_BASE_URL;
+      console.log('Calling n8n:', `${n8nBase}/delete-team-member`);
       const res = await fetch(`${n8nBase}/delete-team-member`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
