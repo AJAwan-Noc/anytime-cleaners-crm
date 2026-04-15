@@ -262,7 +262,7 @@ export default function Team() {
   }));
 
   const allowedRoles = getAllowedRoles(currentRole);
-  const colCount = canWrite ? 8 : 6;
+  const colCount = canWrite ? 9 : 6;
 
   if (isLoading) {
     return (
