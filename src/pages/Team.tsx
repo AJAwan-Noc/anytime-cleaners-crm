@@ -4,7 +4,7 @@ import { supabase, N8N_BASE_URL } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { TeamMember, Role } from '@/types';
 import { toast } from 'sonner';
-import { Loader2, Plus, Pencil, Trash2, Users } from 'lucide-react';
+import { Loader2, Plus, Pencil, Trash2, Users, KeyRound } from 'lucide-react';
 import {
   Table, TableHeader, TableBody, TableRow, TableHead, TableCell,
 } from '@/components/ui/table';
@@ -75,6 +75,12 @@ export default function Team() {
 
   const [deleteTarget, setDeleteTarget] = useState<TeamMember | null>(null);
   const [deleting, setDeleting] = useState(false);
+
+  const [passwordTarget, setPasswordTarget] = useState<TeamMember | null>(null);
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [changingPassword, setChangingPassword] = useState(false);
+  const [resettingPassword, setResettingPassword] = useState(false);
 
   // Fetch team members
   const { data: allMembers = [], isLoading } = useQuery({
@@ -196,6 +202,59 @@ export default function Team() {
     }
   };
 
+  const handleChangePassword = async () => {
+    if (!passwordTarget) return;
+    if (newPassword.length < 8) {
+      toast.error('Password must be at least 8 characters');
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      toast.error('Passwords do not match');
+      return;
+    }
+    setChangingPassword(true);
+    try {
+      console.log('Calling n8n:', `${N8N_BASE_URL}/update-team-member-password`);
+      const res = await fetch(`${N8N_BASE_URL}/update-team-member-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_id: passwordTarget.user_id, new_password: newPassword }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to update password');
+      toast.success('Password updated successfully');
+      setPasswordTarget(null);
+      setNewPassword('');
+      setConfirmPassword('');
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to update password');
+    } finally {
+      setChangingPassword(false);
+    }
+  };
+
+  const handleResetPassword = async () => {
+    if (!editingId) return;
+    const member = allMembers.find((m) => m.id === editingId);
+    if (!member) return;
+    setResettingPassword(true);
+    try {
+      console.log('Calling n8n:', `${N8N_BASE_URL}/update-team-member-password`);
+      const res = await fetch(`${N8N_BASE_URL}/update-team-member-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_id: member.user_id, new_password: 'Welcome123!' }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to reset password');
+      toast.success('Password reset to Welcome123!');
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to reset password');
+    } finally {
+      setResettingPassword(false);
+    }
+  };
+
   // Chart data
   const chartData = members.map((m) => ({
     name: m.name.split(' ')[0],
@@ -203,7 +262,7 @@ export default function Team() {
   }));
 
   const allowedRoles = getAllowedRoles(currentRole);
-  const colCount = canWrite ? 8 : 6;
+  const colCount = canWrite ? 9 : 6;
 
   if (isLoading) {
     return (
@@ -238,6 +297,7 @@ export default function Team() {
               <TableHead>Role</TableHead>
               <TableHead>Active</TableHead>
               <TableHead className="text-right">Leads Assigned</TableHead>
+              {canWrite && <TableHead />}
               {canWrite && <TableHead />}
               {canWrite && <TableHead />}
             </TableRow>
@@ -275,6 +335,15 @@ export default function Team() {
                       {manageable && (
                         <Button variant="ghost" size="icon" onClick={() => openEdit(m)}>
                           <Pencil className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </TableCell>
+                  )}
+                  {canWrite && (
+                    <TableCell>
+                      {manageable && (
+                        <Button variant="ghost" size="icon" onClick={() => { setPasswordTarget(m); setNewPassword(''); setConfirmPassword(''); }}>
+                          <KeyRound className="h-4 w-4" />
                         </Button>
                       )}
                     </TableCell>
@@ -357,7 +426,18 @@ export default function Team() {
               </Select>
             </div>
           </div>
-          <DialogFooter>
+          <DialogFooter className="flex-col sm:flex-row gap-2">
+            {editingId && (
+              <Button
+                variant="secondary"
+                onClick={handleResetPassword}
+                disabled={resettingPassword}
+                className="sm:mr-auto"
+              >
+                {resettingPassword && <Loader2 className="h-4 w-4 animate-spin" />}
+                Reset to Default
+              </Button>
+            )}
             <Button variant="outline" onClick={() => setModalOpen(false)}>Cancel</Button>
             <Button onClick={handleSubmit} disabled={submitting}>
               {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
@@ -385,6 +465,42 @@ export default function Team() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Change Password Modal */}
+      <Dialog open={!!passwordTarget} onOpenChange={(open) => { if (!open) setPasswordTarget(null); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Change Password — {passwordTarget?.name}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label>New Password *</Label>
+              <Input
+                type="password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                placeholder="Minimum 8 characters"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Confirm Password *</Label>
+              <Input
+                type="password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                placeholder="Re-enter password"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPasswordTarget(null)}>Cancel</Button>
+            <Button onClick={handleChangePassword} disabled={changingPassword}>
+              {changingPassword && <Loader2 className="h-4 w-4 animate-spin" />}
+              Update Password
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
