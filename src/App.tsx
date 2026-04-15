@@ -13,6 +13,7 @@ import NewLeadPage from '@/pages/NewLeadPage';
 import Team from '@/pages/Team';
 import Invoices from '@/pages/Invoices';
 import InvoiceDetailPage from '@/pages/InvoiceDetailPage';
+import NewInvoicePage from '@/pages/NewInvoicePage';
 import AdminSettings from '@/pages/AdminSettings';
 import NotFound from '@/pages/NotFound';
 
@@ -51,6 +52,14 @@ const App = () => (
                 element={
                   <ProtectedRoute allowedRoles={['owner', 'admin', 'manager']}>
                     <Invoices />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/invoices/new"
+                element={
+                  <ProtectedRoute allowedRoles={['owner', 'admin', 'manager']}>
+                    <NewInvoicePage />
                   </ProtectedRoute>
                 }
               />
