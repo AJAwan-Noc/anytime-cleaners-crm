@@ -12,6 +12,7 @@ import LeadDetailPage from '@/pages/LeadDetailPage';
 import NewLeadPage from '@/pages/NewLeadPage';
 import Team from '@/pages/Team';
 import Invoices from '@/pages/Invoices';
+import InvoiceDetailPage from '@/pages/InvoiceDetailPage';
 import AdminSettings from '@/pages/AdminSettings';
 import NotFound from '@/pages/NotFound';
 

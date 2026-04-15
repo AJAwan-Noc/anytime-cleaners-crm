@@ -19,14 +19,14 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 
-interface InvoiceWithLead extends Invoice {
+type InvoiceWithLead = Omit<Invoice, 'lead'> & {
   lead: {
     full_name: string;
     email: string | null;
     phone: string;
     address: string | null;
   } | null;
-}
+};
 
 const fmtAUD = (v: number) =>
   new Intl.NumberFormat('en-AU', { style: 'currency', currency: 'AUD' }).format(v);
