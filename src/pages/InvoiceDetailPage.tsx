@@ -57,12 +57,14 @@ export default function InvoiceDetailPage() {
 
   useEffect(() => {
     if (invoice) {
-      setLineItems(invoice.line_items?.length ? invoice.line_items : []);
+      const items = Array.isArray(invoice.line_items) ? invoice.line_items : [];
+      setLineItems(items);
       setNotes(invoice.notes ?? '');
     }
   }, [invoice]);
 
-  const subtotal = lineItems.reduce((s, li) => s + li.quantity * li.unit_price, 0);
+  const safeItems = Array.isArray(lineItems) ? lineItems : [];
+  const subtotal = safeItems.reduce((s, li) => s + li.quantity * li.unit_price, 0);
   const taxRate = invoice?.tax_rate ?? 10;
   const gst = subtotal * (taxRate / 100);
   const total = subtotal + gst;
