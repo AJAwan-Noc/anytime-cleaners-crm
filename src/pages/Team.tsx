@@ -4,7 +4,7 @@ import { supabase, N8N_BASE_URL } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { TeamMember, Role } from '@/types';
 import { toast } from 'sonner';
-import { Loader2, Plus, Pencil, Trash2, Users } from 'lucide-react';
+import { Loader2, Plus, Pencil, Trash2, Users, KeyRound } from 'lucide-react';
 import {
   Table, TableHeader, TableBody, TableRow, TableHead, TableCell,
 } from '@/components/ui/table';
