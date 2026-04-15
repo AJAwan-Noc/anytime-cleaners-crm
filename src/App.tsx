@@ -15,6 +15,7 @@ import Invoices from '@/pages/Invoices';
 import AdminSettings from '@/pages/AdminSettings';
 import NotFound from '@/pages/NotFound';
 
+
 const queryClient = new QueryClient();
 
 const App = () => (
