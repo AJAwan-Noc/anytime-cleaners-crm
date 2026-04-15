@@ -114,23 +114,31 @@ export default function LeadDetail() {
   });
 
   const addUpdateMutation = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (optimistic: LeadUpdate) => {
       const { error } = await supabase.from('lead_updates').insert({
         lead_id: id,
         author_id: teamMember?.user_id ?? null,
-        author_name: teamMember?.name ?? 'Unknown',
-        message: newMessage.trim(),
-        update_type: newUpdateType,
+        author_name: optimistic.author_name,
+        message: optimistic.message,
+        update_type: optimistic.update_type,
       });
       if (error) throw error;
     },
-    onSuccess: () => {
-      toast.success('Update added');
+    onMutate: async (optimistic: LeadUpdate) => {
+      await queryClient.cancelQueries({ queryKey: ['lead-updates', id] });
+      const previous = queryClient.getQueryData<LeadUpdate[]>(['lead-updates', id]);
+      queryClient.setQueryData<LeadUpdate[]>(['lead-updates', id], (old = []) => [optimistic, ...old]);
       setNewMessage('');
       setNewUpdateType('Note');
+      return { previous };
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.previous) queryClient.setQueryData(['lead-updates', id], context.previous);
+      toast.error('Failed to add update');
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['lead-updates', id] });
     },
-    onError: () => toast.error('Failed to add update'),
   });
 
   const archiveMutation = useMutation({
@@ -295,11 +303,21 @@ export default function LeadDetail() {
                     </SelectContent>
                   </Select>
                   <Button
-                    onClick={() => addUpdateMutation.mutate()}
+                    onClick={() => {
+                      const optimistic: LeadUpdate = {
+                        id: crypto.randomUUID(),
+                        lead_id: id!,
+                        author_id: teamMember?.user_id ?? null,
+                        author_name: teamMember?.name ?? 'Unknown',
+                        message: newMessage.trim(),
+                        update_type: newUpdateType,
+                        created_at: new Date().toISOString(),
+                      };
+                      addUpdateMutation.mutate(optimistic);
+                    }}
                     disabled={!newMessage.trim() || addUpdateMutation.isPending}
                     size="sm"
                   >
-                    {addUpdateMutation.isPending && <Loader2 className="h-3 w-3 mr-1 animate-spin" />}
                     Submit
                   </Button>
                 </div>
