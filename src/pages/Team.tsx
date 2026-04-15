@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/lib/supabase';
+import { supabase, N8N_BASE_URL } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { TeamMember, Role } from '@/types';
 import { toast } from 'sonner';
@@ -155,9 +155,8 @@ export default function Team() {
         if (error) throw error;
         toast.success('Member updated');
       } else {
-        const n8nBase = import.meta.env.VITE_N8N_BASE_URL;
-        console.log('Calling n8n:', `${n8nBase}/create-team-member`);
-        const res = await fetch(`${n8nBase}/create-team-member`, {
+        console.log('Calling n8n:', `${N8N_BASE_URL}/create-team-member`);
+        const res = await fetch(`${N8N_BASE_URL}/create-team-member`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ name: form.name, email: form.email, phone: form.phone || null, role: form.role, password: 'Welcome123!' }),
@@ -179,9 +178,8 @@ export default function Team() {
     if (!deleteTarget) return;
     setDeleting(true);
     try {
-      const n8nBase = import.meta.env.VITE_N8N_BASE_URL;
-      console.log('Calling n8n:', `${n8nBase}/delete-team-member`);
-      const res = await fetch(`${n8nBase}/delete-team-member`, {
+      console.log('Calling n8n:', `${N8N_BASE_URL}/delete-team-member`);
+      const res = await fetch(`${N8N_BASE_URL}/delete-team-member`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ user_id: deleteTarget.user_id, team_member_id: deleteTarget.id }),
