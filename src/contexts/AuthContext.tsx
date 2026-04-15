@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useState, ReactNode } from 'react
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
 import { TeamMember, Role } from '@/types';
+import { toast } from 'sonner';
 
 interface AuthContextType {
   user: User | null;
@@ -22,7 +23,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [role, setRole] = useState<Role | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const fetchTeamMember = async (userId: string) => {
+  const denyAccess = async () => {
+    toast.error('Access denied. Your account is not set up in the CRM. Contact your administrator.');
+    await supabase.auth.signOut();
+    setUser(null);
+    setSession(null);
+    setTeamMember(null);
+    setRole(null);
+  };
+
+  const fetchTeamMember = async (userId: string): Promise<boolean> => {
     const { data, error } = await supabase
       .from('team_members')
       .select('*')
@@ -33,11 +43,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       console.error('Failed to fetch team member:', error);
       setTeamMember(null);
       setRole(null);
-      return;
+      await denyAccess();
+      return false;
     }
 
     setTeamMember(data as TeamMember);
     setRole(data.role as Role);
+    return true;
   };
 
   useEffect(() => {
@@ -60,7 +72,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
-        fetchTeamMember(session.user.id);
+        fetchTeamMember(session.user.id).then(() => setLoading(false));
       } else {
         setLoading(false);
       }
