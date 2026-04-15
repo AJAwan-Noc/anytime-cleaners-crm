@@ -155,22 +155,11 @@ export default function Team() {
         if (error) throw error;
         toast.success('Member updated');
       } else {
-        const { data: authData, error: authError } = await supabase.auth.signUp({
-          email: form.email,
-          password: 'Welcome123!',
-        });
-        if (authError) throw authError;
-        if (!authData.user) throw new Error('Failed to create auth user');
-
-        const { error } = await supabase.from('team_members').insert({
-          user_id: authData.user.id,
-          name: form.name,
-          email: form.email,
-          phone: form.phone || null,
-          role: form.role,
-          is_active: true,
+        const { data, error } = await supabase.functions.invoke('create-team-member', {
+          body: { name: form.name, email: form.email, phone: form.phone || null, role: form.role },
         });
         if (error) throw error;
+        if (data?.error) throw new Error(data.error);
         toast.success('Member added');
       }
       queryClient.invalidateQueries({ queryKey: ['team-members'] });
