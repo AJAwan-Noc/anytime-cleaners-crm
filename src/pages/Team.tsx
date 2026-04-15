@@ -253,6 +253,7 @@ export default function Team() {
     } finally {
       setResettingPassword(false);
     }
+  };
 
   // Chart data
   const chartData = members.map((m) => ({
