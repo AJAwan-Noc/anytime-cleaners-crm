@@ -1,3 +1,12 @@
+import { Routes, Route, useNavigate } from 'react-router-dom';
+import LeadsList from '@/components/leads/LeadsList';
+import LeadDetail from '@/components/leads/LeadDetail';
+import NewLeadForm from '@/components/leads/NewLeadForm';
+
 export default function Leads() {
-  return <p className="text-muted-foreground">Leads list — coming in Phase 3.</p>;
+  return (
+    <div className="p-6">
+      <LeadsList />
+    </div>
+  );
 }
