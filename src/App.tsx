@@ -8,6 +8,8 @@ import AppLayout from '@/components/AppLayout';
 import Login from '@/pages/Login';
 import Dashboard from '@/pages/Dashboard';
 import Leads from '@/pages/Leads';
+import LeadDetailPage from '@/pages/LeadDetailPage';
+import NewLeadPage from '@/pages/NewLeadPage';
 import Team from '@/pages/Team';
 import Invoices from '@/pages/Invoices';
 import AdminSettings from '@/pages/AdminSettings';
