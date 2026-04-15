@@ -299,6 +299,7 @@ export default function Team() {
               <TableHead className="text-right">Leads Assigned</TableHead>
               {canWrite && <TableHead />}
               {canWrite && <TableHead />}
+              {canWrite && <TableHead />}
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -334,6 +335,15 @@ export default function Team() {
                       {manageable && (
                         <Button variant="ghost" size="icon" onClick={() => openEdit(m)}>
                           <Pencil className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </TableCell>
+                  )}
+                  {canWrite && (
+                    <TableCell>
+                      {manageable && (
+                        <Button variant="ghost" size="icon" onClick={() => { setPasswordTarget(m); setNewPassword(''); setConfirmPassword(''); }}>
+                          <KeyRound className="h-4 w-4" />
                         </Button>
                       )}
                     </TableCell>
@@ -416,7 +426,18 @@ export default function Team() {
               </Select>
             </div>
           </div>
-          <DialogFooter>
+          <DialogFooter className="flex-col sm:flex-row gap-2">
+            {editingId && (
+              <Button
+                variant="secondary"
+                onClick={handleResetPassword}
+                disabled={resettingPassword}
+                className="sm:mr-auto"
+              >
+                {resettingPassword && <Loader2 className="h-4 w-4 animate-spin" />}
+                Reset to Default
+              </Button>
+            )}
             <Button variant="outline" onClick={() => setModalOpen(false)}>Cancel</Button>
             <Button onClick={handleSubmit} disabled={submitting}>
               {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
@@ -444,6 +465,42 @@ export default function Team() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Change Password Modal */}
+      <Dialog open={!!passwordTarget} onOpenChange={(open) => { if (!open) setPasswordTarget(null); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Change Password — {passwordTarget?.name}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label>New Password *</Label>
+              <Input
+                type="password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                placeholder="Minimum 8 characters"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Confirm Password *</Label>
+              <Input
+                type="password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                placeholder="Re-enter password"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPasswordTarget(null)}>Cancel</Button>
+            <Button onClick={handleChangePassword} disabled={changingPassword}>
+              {changingPassword && <Loader2 className="h-4 w-4 animate-spin" />}
+              Update Password
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
