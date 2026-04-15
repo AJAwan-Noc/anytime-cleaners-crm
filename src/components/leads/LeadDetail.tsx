@@ -303,11 +303,21 @@ export default function LeadDetail() {
                     </SelectContent>
                   </Select>
                   <Button
-                    onClick={() => addUpdateMutation.mutate()}
+                    onClick={() => {
+                      const optimistic: LeadUpdate = {
+                        id: crypto.randomUUID(),
+                        lead_id: id!,
+                        author_id: teamMember?.user_id ?? null,
+                        author_name: teamMember?.name ?? 'Unknown',
+                        message: newMessage.trim(),
+                        update_type: newUpdateType,
+                        created_at: new Date().toISOString(),
+                      };
+                      addUpdateMutation.mutate(optimistic);
+                    }}
                     disabled={!newMessage.trim() || addUpdateMutation.isPending}
                     size="sm"
                   >
-                    {addUpdateMutation.isPending && <Loader2 className="h-3 w-3 mr-1 animate-spin" />}
                     Submit
                   </Button>
                 </div>
