@@ -155,11 +155,17 @@ export default function Team() {
         if (error) throw error;
         toast.success('Member updated');
       } else {
-        const { data, error } = await supabase.functions.invoke('create-team-member', {
-          body: { name: form.name, email: form.email, phone: form.phone || null, role: form.role },
+        const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001';
+        const res = await fetch(`${backendUrl}/api/team/create`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-API-Key': import.meta.env.VITE_API_KEY || '',
+          },
+          body: JSON.stringify({ name: form.name, email: form.email, phone: form.phone || null, role: form.role }),
         });
-        if (error) throw error;
-        if (data?.error) throw new Error(data.error);
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Failed to create member');
         toast.success('Member added');
       }
       queryClient.invalidateQueries({ queryKey: ['team-members'] });
@@ -175,10 +181,17 @@ export default function Team() {
     if (!deleteTarget) return;
     setDeleting(true);
     try {
-      const { error } = await supabase.functions.invoke('delete-team-member', {
-        body: { user_id: deleteTarget.user_id },
+      const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001';
+      const res = await fetch(`${backendUrl}/api/team/delete`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-API-Key': import.meta.env.VITE_API_KEY || '',
+        },
+        body: JSON.stringify({ user_id: deleteTarget.user_id }),
       });
-      if (error) throw error;
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to delete member');
       toast.success(`${deleteTarget.name} has been removed`);
       queryClient.invalidateQueries({ queryKey: ['team-members'] });
     } catch (err: any) {
