@@ -340,12 +340,7 @@ export default function LeadDetail() {
                 <Button
                   className="w-full justify-start gap-2"
                   variant="outline"
-                  onClick={() =>
-                    webhookAction('create-invoice', {
-                      lead_id: id,
-                      service_date: format(new Date(), 'yyyy-MM-dd'),
-                    }, 'Invoice generation')
-                  }
+                  onClick={() => navigate(`/invoices/new?lead_id=${id}`)}
                 >
                   <FileText className="h-4 w-4" /> Generate Invoice
                 </Button>
