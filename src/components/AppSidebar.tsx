@@ -27,11 +27,11 @@ interface NavItem {
 }
 
 const navItems: NavItem[] = [
-  { title: 'Dashboard', url: '/', icon: LayoutDashboard, roles: ['admin', 'manager', 'agent'] },
-  { title: 'Leads', url: '/leads', icon: Users, roles: ['admin', 'manager', 'agent'] },
-  { title: 'Team', url: '/team', icon: UserCog, roles: ['admin', 'manager'] },
-  { title: 'Invoices', url: '/invoices', icon: FileText, roles: ['admin', 'manager'] },
-  { title: 'Admin', url: '/admin', icon: Settings, roles: ['admin'] },
+  { title: 'Dashboard', url: '/', icon: LayoutDashboard, roles: ['owner', 'admin', 'manager', 'agent'] },
+  { title: 'Leads', url: '/leads', icon: Users, roles: ['owner', 'admin', 'manager', 'agent'] },
+  { title: 'Team', url: '/team', icon: UserCog, roles: ['owner', 'admin', 'manager'] },
+  { title: 'Invoices', url: '/invoices', icon: FileText, roles: ['owner', 'admin', 'manager'] },
+  { title: 'Admin', url: '/admin', icon: Settings, roles: ['owner', 'admin'] },
 ];
 
 export function AppSidebar() {

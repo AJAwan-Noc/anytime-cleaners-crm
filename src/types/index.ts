@@ -1,4 +1,4 @@
-export type Role = 'admin' | 'manager' | 'agent';
+export type Role = 'owner' | 'admin' | 'manager' | 'agent';
 
 export type LeadStage = 'new_lead' | 'contacted' | 'not_responding' | 'booked' | 'not_interested';
 

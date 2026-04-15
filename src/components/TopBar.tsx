@@ -39,11 +39,13 @@ export function TopBar() {
   });
 
   const roleBadgeColor =
-    role === 'admin'
-      ? 'bg-primary text-primary-foreground'
-      : role === 'manager'
-        ? 'bg-blue-100 text-blue-800'
-        : 'bg-gray-100 text-gray-800';
+    role === 'owner'
+      ? 'bg-purple-100 text-purple-800'
+      : role === 'admin'
+        ? 'bg-primary text-primary-foreground'
+        : role === 'manager'
+          ? 'bg-blue-100 text-blue-800'
+          : 'bg-gray-100 text-gray-800';
 
   return (
     <header className="h-14 border-b bg-card flex items-center justify-between px-4 shrink-0">
