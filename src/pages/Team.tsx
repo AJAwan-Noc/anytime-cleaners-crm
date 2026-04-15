@@ -202,6 +202,58 @@ export default function Team() {
     }
   };
 
+  const handleChangePassword = async () => {
+    if (!passwordTarget) return;
+    if (newPassword.length < 8) {
+      toast.error('Password must be at least 8 characters');
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      toast.error('Passwords do not match');
+      return;
+    }
+    setChangingPassword(true);
+    try {
+      console.log('Calling n8n:', `${N8N_BASE_URL}/update-team-member-password`);
+      const res = await fetch(`${N8N_BASE_URL}/update-team-member-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_id: passwordTarget.user_id, new_password: newPassword }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to update password');
+      toast.success('Password updated successfully');
+      setPasswordTarget(null);
+      setNewPassword('');
+      setConfirmPassword('');
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to update password');
+    } finally {
+      setChangingPassword(false);
+    }
+  };
+
+  const handleResetPassword = async () => {
+    if (!editingId) return;
+    const member = allMembers.find((m) => m.id === editingId);
+    if (!member) return;
+    setResettingPassword(true);
+    try {
+      console.log('Calling n8n:', `${N8N_BASE_URL}/update-team-member-password`);
+      const res = await fetch(`${N8N_BASE_URL}/update-team-member-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_id: member.user_id, new_password: 'Welcome123!' }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to reset password');
+      toast.success('Password reset to Welcome123!');
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to reset password');
+    } finally {
+      setResettingPassword(false);
+    }
+
   // Chart data
   const chartData = members.map((m) => ({
     name: m.name.split(' ')[0],
