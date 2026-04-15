@@ -8,6 +8,8 @@ import AppLayout from '@/components/AppLayout';
 import Login from '@/pages/Login';
 import Dashboard from '@/pages/Dashboard';
 import Leads from '@/pages/Leads';
+import LeadDetailPage from '@/pages/LeadDetailPage';
+import NewLeadPage from '@/pages/NewLeadPage';
 import Team from '@/pages/Team';
 import Invoices from '@/pages/Invoices';
 import AdminSettings from '@/pages/AdminSettings';
@@ -32,8 +34,8 @@ const App = () => (
             >
               <Route path="/" element={<Dashboard />} />
               <Route path="/leads" element={<Leads />} />
-              <Route path="/leads/new" element={<Leads />} />
-              <Route path="/leads/:id" element={<Leads />} />
+              <Route path="/leads/new" element={<NewLeadPage />} />
+              <Route path="/leads/:id" element={<LeadDetailPage />} />
               <Route
                 path="/team"
                 element={
