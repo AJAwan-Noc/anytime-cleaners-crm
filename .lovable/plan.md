@@ -1,42 +1,69 @@
 
 
-# Phase 4: Team Management
+# Invoice Flow Overhaul
 
-## Overview
-Replace the placeholder `/team` page with a full team management view. Admin gets full CRUD, manager gets read-only, agent is already redirected by `ProtectedRoute`.
+## Summary
+Major rework of the invoice system: new invoice creation page, enhanced detail page with send/delete/duplicate/preview, improved list page with filters, and updated lead detail navigation.
 
-## Files to Create/Edit
+## Changes
 
-### 1. `src/pages/Team.tsx` — Full rewrite
-- Fetch all `team_members` from Supabase
-- Fetch lead counts per member: `leads` table grouped by `assigned_to` where `is_archived = false`
-- Role-aware rendering using `useAuth().role`
+### 1. New Invoice Page (`src/pages/NewInvoicePage.tsx`)
+- Route: `/invoices/new?lead_id=xxx`
+- Fetch lead by `lead_id` query param, show bill-to section (name, email, phone, address, service_type)
+- Auto-generate invoice number: query `invoices` table ordered by `invoice_number` desc, extract numeric part from `AC-XXXX`, increment, zero-pad to 4 digits
+- Fetch `tax_rate` from `admin_config` table (key = `tax_rate`)
+- Pre-populate first line item with lead's `service_type` as description, qty 1, price 0
+- Service date picker using a date input
+- Layout mirrors `InvoiceDetailPage` (bill-to, line items table, subtotal/GST/total, notes)
+- **Save as Draft**: INSERT into `invoices` with status `draft`, redirect to `/invoices/:id`
+- **Send Invoice to Client**: INSERT into `invoices` with status `sent`, POST to `N8N_BASE_URL/create-invoice` with `{ lead_id, invoice_id, line_items, service_date }`, redirect to `/invoices/:id`
 
-**Admin view:**
-- "Add New Member" button opening a Dialog modal
-- Table with columns: Name, Email, Phone, Role badge (admin=indigo, manager=blue, agent=gray), Active toggle (Switch component), Leads Assigned count, Edit button
-- Active toggle calls `supabase.from('team_members').update({ is_active })` on click
-- Add modal fields: Name (required), Email (required), Phone, Role dropdown
-- On submit: `supabase.auth.signUp({ email, password: 'Welcome123!' })` → then `supabase.from('team_members').insert({ user_id, name, email, phone, role, is_active: true })`
-- Edit button opens same modal pre-filled, saves via `.update()`
-- Below table: Recharts `BarChart` with member names on X-axis, lead counts on Y-axis
+### 2. Lead Detail — Generate Invoice Button (`src/components/leads/LeadDetail.tsx`)
+- Replace the webhook call on "Generate Invoice" with `navigate(`/invoices/new?lead_id=${id}`)`
+- Remove the `webhookAction('create-invoice', ...)` call
 
-**Manager view:**
-- Same table but no Add button, no Edit buttons, Active column shows badge instead of toggle
-- Same bar chart
+### 3. Invoice Detail Page Updates (`src/pages/InvoiceDetailPage.tsx`)
+- **Rename** "Mark as Sent" to "Send Invoice to Client" — on click: save invoice data, POST to `N8N_BASE_URL/create-invoice` with `{ lead_id, invoice_id, line_items, service_date }`, update status to `sent`
+- **Delete Invoice** button (red, destructive) — confirmation dialog "Delete invoice AC-XXXX? This cannot be undone." On confirm: DELETE from `invoices`, redirect to `/invoices`, success toast
+- **Duplicate Invoice** button — query max invoice number, create new draft with copied line items and new number, redirect to new invoice
+- **Preview** button — opens a Dialog/modal showing styled HTML invoice preview (indigo header with "Anytime Cleaners", bill-to, line items table, totals, footer)
 
-### 2. No routing changes needed
-The `/team` route already exists with `allowedRoles={['admin', 'manager']}`, which blocks agents.
+### 4. Invoice List Page Updates (`src/pages/Invoices.tsx`)
+- Add **status filter** dropdown (All / Draft / Sent / Paid / Overdue / Cancelled) above the table
+- Add **Delete** button per row with confirmation dialog
+- Update summary bar: 4 cards — Total Revenue (paid), Outstanding (sent+overdue), Overdue count (red if > 0), Draft count
+- Add **Create Invoice** button that navigates to `/invoices/new` (no lead pre-selected, user picks from dropdown or leaves blank)
+
+### 5. Route Registration (`src/App.tsx`)
+- Add route for `/invoices/new` pointing to `NewInvoicePage`, protected for admin/manager
+
+### 6. Item 5 (Overdue auto-detection)
+- This is an n8n workflow change, not a frontend change. Will be skipped in this implementation — it's a server-side automation concern.
 
 ## Technical Details
-- Use `@tanstack/react-query` for data fetching (consistent with existing patterns)
-- Use existing UI components: `Table`, `Dialog`, `Button`, `Badge`, `Switch`, `Select`, `Input`, `Label`
-- Use `ChartContainer` from `src/components/ui/chart.tsx` with Recharts `BarChart`, `Bar`, `XAxis`, `YAxis`, `Tooltip`
-- Role badge colors: `bg-indigo-100 text-indigo-800` (admin), `bg-blue-100 text-blue-800` (manager), `bg-gray-100 text-gray-800` (agent)
-- Sonner toasts for success/error feedback
-- Invalidate `team-members` query after add/edit/toggle mutations
 
-## Important Notes
-- `supabase.auth.signUp` from the client uses the anon key — this will create the auth user but may send a confirmation email depending on Supabase settings. The team_members row insert happens immediately after.
-- The edit modal will NOT change auth credentials (email/password), only the `team_members` table fields.
+**Files created:**
+- `src/pages/NewInvoicePage.tsx` — full new invoice creation form
+
+**Files modified:**
+- `src/App.tsx` — add `/invoices/new` route (before `/invoices/:id` to avoid route conflict)
+- `src/components/leads/LeadDetail.tsx` — replace Generate Invoice webhook with navigation
+- `src/pages/InvoiceDetailPage.tsx` — add Send via n8n, Delete, Duplicate, Preview functionality
+- `src/pages/Invoices.tsx` — add status filter, per-row delete, overdue count card
+
+**Invoice number generation** (shared helper):
+```typescript
+async function generateInvoiceNumber(): Promise<string> {
+  const { data } = await supabase
+    .from('invoices')
+    .select('invoice_number')
+    .order('invoice_number', { ascending: false })
+    .limit(1);
+  const last = data?.[0]?.invoice_number;
+  const num = last ? parseInt(last.replace('AC-', ''), 10) + 1 : 1;
+  return `AC-${String(num).padStart(4, '0')}`;
+}
+```
+
+**Preview modal** will render a styled div (not an iframe) with indigo header, company name, bill-to details, line items table, totals, and footer text — matching a professional invoice email template.
 
