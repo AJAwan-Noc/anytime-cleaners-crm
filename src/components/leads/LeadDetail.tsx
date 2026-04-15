@@ -115,12 +115,16 @@ export default function LeadDetail() {
 
   const addUpdateMutation = useMutation({
     mutationFn: async (optimistic: LeadUpdate) => {
+      const typeMap: Record<UpdateType, string> = {
+        Note: 'note', Call: 'call', Email: 'email', SMS: 'sms',
+        'Stage Change': 'stage_change', System: 'system',
+      };
       const { error } = await supabase.from('lead_updates').insert({
         lead_id: id,
         author_id: teamMember?.user_id ?? null,
         author_name: optimistic.author_name,
         message: optimistic.message,
-        update_type: optimistic.update_type,
+        update_type: typeMap[optimistic.update_type] ?? optimistic.update_type.toLowerCase(),
       });
       if (error) throw error;
     },
