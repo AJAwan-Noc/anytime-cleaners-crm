@@ -155,14 +155,11 @@ export default function Team() {
         if (error) throw error;
         toast.success('Member updated');
       } else {
-        const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001';
-        const res = await fetch(`${backendUrl}/api/team/create`, {
+        const n8nBase = import.meta.env.VITE_N8N_BASE_URL;
+        const res = await fetch(`${n8nBase}/create-team-member`, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-API-Key': import.meta.env.VITE_API_KEY || '',
-          },
-          body: JSON.stringify({ name: form.name, email: form.email, phone: form.phone || null, role: form.role }),
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: form.name, email: form.email, phone: form.phone || null, role: form.role, password: 'Welcome123!' }),
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Failed to create member');
@@ -181,14 +178,11 @@ export default function Team() {
     if (!deleteTarget) return;
     setDeleting(true);
     try {
-      const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001';
-      const res = await fetch(`${backendUrl}/api/team/delete`, {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-API-Key': import.meta.env.VITE_API_KEY || '',
-        },
-        body: JSON.stringify({ user_id: deleteTarget.user_id }),
+      const n8nBase = import.meta.env.VITE_N8N_BASE_URL;
+      const res = await fetch(`${n8nBase}/delete-team-member`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_id: deleteTarget.user_id, team_member_id: deleteTarget.id }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to delete member');
