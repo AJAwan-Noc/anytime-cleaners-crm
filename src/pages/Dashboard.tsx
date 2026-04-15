@@ -4,7 +4,7 @@ import KanbanBoard from '@/components/dashboard/KanbanBoard';
 
 export default function Dashboard() {
   const { role } = useAuth();
-  const showKPIs = role === 'admin' || role === 'manager';
+  const showKPIs = role === 'owner' || role === 'admin' || role === 'manager';
 
   return (
     <div>

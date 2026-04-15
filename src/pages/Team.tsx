@@ -4,7 +4,7 @@ import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { TeamMember, Role } from '@/types';
 import { toast } from 'sonner';
-import { Loader2, Plus, Pencil, Users } from 'lucide-react';
+import { Loader2, Plus, Pencil, Trash2, Users } from 'lucide-react';
 import {
   Table, TableHeader, TableBody, TableRow, TableHead, TableCell,
 } from '@/components/ui/table';
@@ -17,6 +17,10 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from '@/components/ui/dialog';
 import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
 import {
@@ -24,6 +28,7 @@ import {
 } from 'recharts';
 
 const ROLE_BADGE: Record<Role, string> = {
+  owner: 'bg-purple-100 text-purple-800',
   admin: 'bg-indigo-100 text-indigo-800',
   manager: 'bg-blue-100 text-blue-800',
   agent: 'bg-gray-100 text-gray-800',
@@ -38,9 +43,29 @@ interface MemberForm {
 
 const emptyForm: MemberForm = { name: '', email: '', phone: '', role: 'agent' };
 
+/** Which roles can the current user create/edit? */
+function getAllowedRoles(currentRole: Role | null): Role[] {
+  if (currentRole === 'owner') return ['owner', 'admin', 'manager', 'agent'];
+  if (currentRole === 'admin') return ['manager', 'agent'];
+  return [];
+}
+
+/** Can the current user see/manage a given member row? */
+function canManageRow(currentRole: Role | null, targetRole: Role): boolean {
+  if (currentRole === 'owner') return true;
+  if (currentRole === 'admin') return targetRole === 'manager' || targetRole === 'agent';
+  return false;
+}
+
+/** Can the current user delete a given member? */
+function canDeleteRow(currentRole: Role | null, targetRole: Role, targetId: string, selfId: string | undefined): boolean {
+  if (targetId === selfId) return false; // can't delete yourself
+  return canManageRow(currentRole, targetRole);
+}
+
 export default function Team() {
-  const { role: currentRole } = useAuth();
-  const isAdmin = currentRole === 'admin';
+  const { role: currentRole, teamMember: currentMember } = useAuth();
+  const canWrite = currentRole === 'owner' || currentRole === 'admin';
   const queryClient = useQueryClient();
 
   const [modalOpen, setModalOpen] = useState(false);
@@ -48,8 +73,11 @@ export default function Team() {
   const [form, setForm] = useState<MemberForm>(emptyForm);
   const [submitting, setSubmitting] = useState(false);
 
+  const [deleteTarget, setDeleteTarget] = useState<TeamMember | null>(null);
+  const [deleting, setDeleting] = useState(false);
+
   // Fetch team members
-  const { data: members = [], isLoading } = useQuery({
+  const { data: allMembers = [], isLoading } = useQuery({
     queryKey: ['team-members'],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -59,6 +87,13 @@ export default function Team() {
       if (error) throw error;
       return data as TeamMember[];
     },
+  });
+
+  // Filter visible members based on role hierarchy
+  const members = allMembers.filter((m) => {
+    if (currentRole === 'owner' || currentRole === 'manager') return true;
+    if (currentRole === 'admin') return m.role === 'manager' || m.role === 'agent';
+    return false;
   });
 
   // Fetch lead counts per member
@@ -89,9 +124,7 @@ export default function Team() {
         .eq('id', id);
       if (error) throw error;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['team-members'] });
-    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['team-members'] }),
     onError: () => toast.error('Failed to update status'),
   });
 
@@ -122,7 +155,6 @@ export default function Team() {
         if (error) throw error;
         toast.success('Member updated');
       } else {
-        // Create auth user first
         const { data: authData, error: authError } = await supabase.auth.signUp({
           email: form.email,
           password: 'Welcome123!',
@@ -150,11 +182,32 @@ export default function Team() {
     }
   };
 
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    try {
+      const { error } = await supabase.functions.invoke('delete-team-member', {
+        body: { user_id: deleteTarget.user_id },
+      });
+      if (error) throw error;
+      toast.success(`${deleteTarget.name} has been removed`);
+      queryClient.invalidateQueries({ queryKey: ['team-members'] });
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to delete member');
+    } finally {
+      setDeleting(false);
+      setDeleteTarget(null);
+    }
+  };
+
   // Chart data
   const chartData = members.map((m) => ({
     name: m.name.split(' ')[0],
     leads: leadCounts[m.id] || 0,
   }));
+
+  const allowedRoles = getAllowedRoles(currentRole);
+  const colCount = canWrite ? 8 : 6;
 
   if (isLoading) {
     return (
@@ -171,7 +224,7 @@ export default function Team() {
           <Users className="h-6 w-6 text-primary" />
           <h1 className="text-2xl font-bold">Team</h1>
         </div>
-        {isAdmin && (
+        {canWrite && (
           <Button onClick={openAdd}>
             <Plus className="h-4 w-4" /> Add New Member
           </Button>
@@ -189,45 +242,62 @@ export default function Team() {
               <TableHead>Role</TableHead>
               <TableHead>Active</TableHead>
               <TableHead className="text-right">Leads Assigned</TableHead>
-              {isAdmin && <TableHead />}
+              {canWrite && <TableHead />}
+              {canWrite && <TableHead />}
             </TableRow>
           </TableHeader>
           <TableBody>
-            {members.map((m) => (
-              <TableRow key={m.id}>
-                <TableCell className="font-medium">{m.name}</TableCell>
-                <TableCell>{m.email}</TableCell>
-                <TableCell>{m.phone || '—'}</TableCell>
-                <TableCell>
-                  <Badge className={ROLE_BADGE[m.role]}>{m.role}</Badge>
-                </TableCell>
-                <TableCell>
-                  {isAdmin ? (
-                    <Switch
-                      checked={m.is_active}
-                      onCheckedChange={(checked) =>
-                        toggleActive.mutate({ id: m.id, is_active: checked })
-                      }
-                    />
-                  ) : (
-                    <Badge variant={m.is_active ? 'default' : 'secondary'}>
-                      {m.is_active ? 'Active' : 'Inactive'}
-                    </Badge>
-                  )}
-                </TableCell>
-                <TableCell className="text-right">{leadCounts[m.id] || 0}</TableCell>
-                {isAdmin && (
+            {members.map((m) => {
+              const manageable = canManageRow(currentRole, m.role);
+              const deletable = canDeleteRow(currentRole, m.role, m.id, currentMember?.id);
+
+              return (
+                <TableRow key={m.id}>
+                  <TableCell className="font-medium">{m.name}</TableCell>
+                  <TableCell>{m.email}</TableCell>
+                  <TableCell>{m.phone || '—'}</TableCell>
                   <TableCell>
-                    <Button variant="ghost" size="icon" onClick={() => openEdit(m)}>
-                      <Pencil className="h-4 w-4" />
-                    </Button>
+                    <Badge className={ROLE_BADGE[m.role]}>{m.role}</Badge>
                   </TableCell>
-                )}
-              </TableRow>
-            ))}
+                  <TableCell>
+                    {canWrite && manageable ? (
+                      <Switch
+                        checked={m.is_active}
+                        onCheckedChange={(checked) =>
+                          toggleActive.mutate({ id: m.id, is_active: checked })
+                        }
+                      />
+                    ) : (
+                      <Badge variant={m.is_active ? 'default' : 'secondary'}>
+                        {m.is_active ? 'Active' : 'Inactive'}
+                      </Badge>
+                    )}
+                  </TableCell>
+                  <TableCell className="text-right">{leadCounts[m.id] || 0}</TableCell>
+                  {canWrite && (
+                    <TableCell>
+                      {manageable && (
+                        <Button variant="ghost" size="icon" onClick={() => openEdit(m)}>
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </TableCell>
+                  )}
+                  {canWrite && (
+                    <TableCell>
+                      {deletable && (
+                        <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => setDeleteTarget(m)}>
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </TableCell>
+                  )}
+                </TableRow>
+              );
+            })}
             {members.length === 0 && (
               <TableRow>
-                <TableCell colSpan={isAdmin ? 7 : 6} className="text-center text-muted-foreground py-8">
+                <TableCell colSpan={colCount} className="text-center text-muted-foreground py-8">
                   No team members found
                 </TableCell>
               </TableRow>
@@ -282,9 +352,11 @@ export default function Team() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="admin">Admin</SelectItem>
-                  <SelectItem value="manager">Manager</SelectItem>
-                  <SelectItem value="agent">Agent</SelectItem>
+                  {allowedRoles.map((r) => (
+                    <SelectItem key={r} value={r}>
+                      {r.charAt(0).toUpperCase() + r.slice(1)}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -298,6 +370,25 @@ export default function Team() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Delete Confirmation */}
+      <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Team Member</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete {deleteTarget?.name}? This cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} disabled={deleting} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              {deleting && <Loader2 className="h-4 w-4 animate-spin mr-1" />}
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
