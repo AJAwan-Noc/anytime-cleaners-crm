@@ -58,7 +58,7 @@ const App = () => (
                 path="/invoices/:id"
                 element={
                   <ProtectedRoute allowedRoles={['owner', 'admin', 'manager']}>
-                    <Invoices />
+                    <InvoiceDetailPage />
                   </ProtectedRoute>
                 }
               />
