@@ -17,6 +17,7 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { format, parseISO } from 'date-fns';
 import { toast } from 'sonner';
 
@@ -181,9 +182,29 @@ export default function Invoices() {
                 </TableCell>
                 <TableCell className="text-right">{fmtAUD(inv.total || 0)}</TableCell>
                 <TableCell>
-                  <Badge className={INVOICE_STATUS_COLORS[inv.status as InvoiceStatus]}>
-                    {inv.status.charAt(0).toUpperCase() + inv.status.slice(1)}
-                  </Badge>
+                  {inv.status === 'paid' && inv.paid_at ? (
+                    <TooltipProvider delayDuration={150}>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <div className="inline-flex flex-col items-start gap-0.5">
+                            <Badge className={INVOICE_STATUS_COLORS[inv.status as InvoiceStatus]}>
+                              Paid
+                            </Badge>
+                            <span className="text-[11px] text-muted-foreground">
+                              {inv.payment_method ?? '—'} · {format(parseISO(inv.paid_at), 'dd/MM/yyyy')}
+                            </span>
+                          </div>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          Paid via {inv.payment_method ?? '—'} on {format(parseISO(inv.paid_at), 'dd/MM/yyyy')}
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  ) : (
+                    <Badge className={INVOICE_STATUS_COLORS[inv.status as InvoiceStatus]}>
+                      {inv.status.charAt(0).toUpperCase() + inv.status.slice(1)}
+                    </Badge>
+                  )}
                 </TableCell>
                 <TableCell>
                   <Button

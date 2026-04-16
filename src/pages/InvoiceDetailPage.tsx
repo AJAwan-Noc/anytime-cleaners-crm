@@ -445,23 +445,14 @@ export default function InvoiceDetailPage() {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Confirm paid dialog */}
-      <AlertDialog open={confirmPaid} onOpenChange={setConfirmPaid}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Confirm Payment</AlertDialogTitle>
-            <AlertDialogDescription>
-              Mark invoice {invoice.invoice_number} as paid? This indicates payment has been received.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={() => { setConfirmPaid(false); saveInvoice('paid'); }}>
-              Confirm
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      {/* Mark paid dialog */}
+      <MarkPaidDialog
+        open={confirmPaid}
+        onOpenChange={setConfirmPaid}
+        invoiceNumber={invoice.invoice_number}
+        loading={markingPaid}
+        onConfirm={markAsPaid}
+      />
 
       {/* Confirm delete dialog */}
       <AlertDialog open={confirmDelete} onOpenChange={setConfirmDelete}>
