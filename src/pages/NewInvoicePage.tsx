@@ -51,6 +51,7 @@ export default function NewInvoicePage() {
   const [notes, setNotes] = useState('');
   const [serviceDate, setServiceDate] = useState<Date | undefined>(new Date());
   const [saving, setSaving] = useState<string | null>(null);
+  const [confirmSend, setConfirmSend] = useState(false);
 
   // Fetch all leads for the dropdown when no lead_id param
   const { data: allLeads = [] } = useQuery({
