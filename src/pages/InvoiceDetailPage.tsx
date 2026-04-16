@@ -154,6 +154,29 @@ export default function InvoiceDetailPage() {
     }
   };
 
+  const markAsPaid = async ({ payment_method, paid_at }: { payment_method: PaymentMethod; paid_at: Date }) => {
+    setMarkingPaid(true);
+    try {
+      const { error } = await supabase
+        .from('invoices')
+        .update({
+          status: 'paid',
+          payment_method,
+          paid_at: paid_at.toISOString(),
+        })
+        .eq('id', id!);
+      if (error) throw error;
+      toast.success('Invoice marked as paid');
+      setConfirmPaid(false);
+      queryClient.invalidateQueries({ queryKey: ['invoice', id] });
+      queryClient.invalidateQueries({ queryKey: ['invoices'] });
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to mark invoice as paid');
+    } finally {
+      setMarkingPaid(false);
+    }
+  };
+
   const deleteInvoice = async () => {
     setSaving('delete');
     try {
@@ -237,17 +260,24 @@ export default function InvoiceDetailPage() {
                 </p>
               )}
             </div>
-            <div className="flex items-center gap-2">
-              <Badge className={INVOICE_STATUS_COLORS[invoice.status as InvoiceStatus] + ' text-sm px-3 py-1'}>
-                {invoice.status.charAt(0).toUpperCase() + invoice.status.slice(1)}
-              </Badge>
-              <Button variant="outline" size="sm" onClick={() => setShowPreview(true)}>
-                <Eye className="mr-1 h-4 w-4" /> Preview
-              </Button>
-              <Button variant="outline" size="sm" onClick={duplicateInvoice} disabled={!!saving}>
-                {saving === 'duplicate' ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : <Copy className="mr-1 h-4 w-4" />}
-                Duplicate
-              </Button>
+            <div className="flex flex-col items-end gap-2">
+              <div className="flex items-center gap-2">
+                <Badge className={INVOICE_STATUS_COLORS[invoice.status as InvoiceStatus] + ' text-sm px-3 py-1'}>
+                  {invoice.status.charAt(0).toUpperCase() + invoice.status.slice(1)}
+                </Badge>
+                <Button variant="outline" size="sm" onClick={() => setShowPreview(true)}>
+                  <Eye className="mr-1 h-4 w-4" /> Preview
+                </Button>
+                <Button variant="outline" size="sm" onClick={duplicateInvoice} disabled={!!saving}>
+                  {saving === 'duplicate' ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : <Copy className="mr-1 h-4 w-4" />}
+                  Duplicate
+                </Button>
+              </div>
+              {invoice.status === 'paid' && invoice.paid_at && (
+                <p className="text-sm font-medium text-green-600">
+                  Paid via {invoice.payment_method ?? '—'} on {format(parseISO(invoice.paid_at), 'dd/MM/yyyy')}
+                </p>
+              )}
             </div>
           </div>
 
