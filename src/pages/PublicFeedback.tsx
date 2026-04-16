@@ -66,10 +66,10 @@ export default function PublicFeedback() {
     );
 
     const payload = {
-      overall_satisfaction: overall,
-      cleaning_quality: cleaning,
-      punctuality,
-      value_for_money: value,
+      rating_overall: overall,
+      rating_cleaning: cleaning,
+      rating_punctuality: punctuality,
+      rating_value: value,
       would_recommend: recommend,
       review_text: review.trim() || null,
       submitted: true,
