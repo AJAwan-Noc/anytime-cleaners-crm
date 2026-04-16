@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { Card, CardContent } from '@/components/ui/card';
-import { Users, UserPlus, CalendarCheck, DollarSign } from 'lucide-react';
+import { Users, UserPlus, CalendarCheck, DollarSign, Star } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 
 interface KPI {
@@ -21,20 +21,24 @@ export default function KPICards() {
       weekStart.setDate(now.getDate() - now.getDay());
       weekStart.setHours(0, 0, 0, 0);
 
-      const [totalRes, todayRes, bookedRes, revenueRes] = await Promise.all([
+      const [totalRes, todayRes, bookedRes, revenueRes, ratingsRes] = await Promise.all([
         supabase.from('leads').select('id', { count: 'exact', head: true }).eq('is_archived', false),
         supabase.from('leads').select('id', { count: 'exact', head: true }).gte('created_at', todayStart),
         supabase.from('leads').select('id', { count: 'exact', head: true }).eq('stage', 'booked').gte('created_at', weekStart.toISOString()),
         supabase.from('invoices').select('total').eq('status', 'paid').gte('created_at', new Date(now.getFullYear(), now.getMonth(), 1).toISOString()),
+        supabase.from('feedback').select('average_rating').eq('submitted', true),
       ]);
 
       const revenue = (revenueRes.data ?? []).reduce((sum, inv) => sum + (inv.total ?? 0), 0);
+      const ratings = (ratingsRes.data ?? []).map((r: { average_rating: number | null }) => r.average_rating ?? 0).filter((n) => n > 0);
+      const avgRating = ratings.length ? ratings.reduce((a, b) => a + b, 0) / ratings.length : null;
 
       return [
         { label: 'Total Leads', value: totalRes.count ?? 0, icon: <Users className="h-5 w-5" />, color: 'text-blue-600' },
         { label: 'Leads Today', value: todayRes.count ?? 0, icon: <UserPlus className="h-5 w-5" />, color: 'text-indigo-600' },
         { label: 'Booked This Week', value: bookedRes.count ?? 0, icon: <CalendarCheck className="h-5 w-5" />, color: 'text-green-600' },
         { label: 'Revenue This Month', value: `$${revenue.toLocaleString('en-AU', { minimumFractionDigits: 2 })}`, icon: <DollarSign className="h-5 w-5" />, color: 'text-emerald-600' },
+        { label: 'Avg Rating', value: avgRating !== null ? `${avgRating.toFixed(1)}/5` : 'No ratings yet', icon: <Star className="h-5 w-5" />, color: 'text-amber-500' },
       ];
     },
     refetchInterval: 30000,
@@ -42,8 +46,8 @@ export default function KPICards() {
 
   if (isLoading) {
     return (
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        {[...Array(4)].map((_, i) => (
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
+        {[...Array(5)].map((_, i) => (
           <Card key={i}><CardContent className="p-5"><Skeleton className="h-16 w-full" /></CardContent></Card>
         ))}
       </div>
@@ -51,7 +55,7 @@ export default function KPICards() {
   }
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
       {kpis?.map((kpi) => (
         <Card key={kpi.label} className="hover:shadow-md transition-shadow">
           <CardContent className="p-5">
