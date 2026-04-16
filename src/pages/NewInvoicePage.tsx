@@ -14,6 +14,10 @@ import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
 import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from '@/components/ui/select';
+import { Label } from '@/components/ui/label';
+import {
   Table, TableHeader, TableBody, TableRow, TableHead, TableCell,
 } from '@/components/ui/table';
 
@@ -34,22 +38,37 @@ async function generateInvoiceNumber(): Promise<string> {
 export default function NewInvoicePage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const leadId = searchParams.get('lead_id');
+  const paramLeadId = searchParams.get('lead_id');
 
+  const [selectedLeadId, setSelectedLeadId] = useState<string | null>(paramLeadId);
   const [invoiceNumber, setInvoiceNumber] = useState('');
   const [lineItems, setLineItems] = useState<LineItem[]>([]);
   const [notes, setNotes] = useState('');
   const [serviceDate, setServiceDate] = useState<Date | undefined>(new Date());
   const [saving, setSaving] = useState<string | null>(null);
 
-  const { data: lead, isLoading: leadLoading } = useQuery({
-    queryKey: ['lead', leadId],
+  // Fetch all leads for the dropdown when no lead_id param
+  const { data: allLeads = [] } = useQuery({
+    queryKey: ['leads-for-invoice'],
     queryFn: async () => {
-      const { data, error } = await supabase.from('leads').select('*').eq('id', leadId!).single();
+      const { data, error } = await supabase
+        .from('leads')
+        .select('id, full_name, email, phone, address, service_type')
+        .eq('is_archived', false)
+        .order('full_name');
+      if (error) throw error;
+      return data as Pick<Lead, 'id' | 'full_name' | 'email' | 'phone' | 'address' | 'service_type'>[];
+    },
+  });
+
+  const { data: lead, isLoading: leadLoading } = useQuery({
+    queryKey: ['lead', selectedLeadId],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('leads').select('*').eq('id', selectedLeadId!).single();
       if (error) throw error;
       return data as Lead;
     },
-    enabled: !!leadId,
+    enabled: !!selectedLeadId,
   });
 
   const { data: taxRateConfig } = useQuery({
@@ -102,14 +121,14 @@ export default function NewInvoicePage() {
     setLineItems(prev => prev.filter((_, i) => i !== idx));
 
   const saveInvoice = async (status: 'draft' | 'sent') => {
-    if (!leadId) {
+    if (!selectedLeadId) {
       toast.error('No lead selected');
       return;
     }
     setSaving(status);
     try {
       const payload = {
-        lead_id: leadId,
+        lead_id: selectedLeadId,
         invoice_number: invoiceNumber,
         service_date: serviceDate ? format(serviceDate, 'yyyy-MM-dd') : null,
         line_items: lineItems.map(li => ({ ...li, total: li.quantity * li.unit_price })),
@@ -133,7 +152,7 @@ export default function NewInvoicePage() {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              lead_id: leadId,
+              lead_id: selectedLeadId,
               invoice_id: data.id,
               line_items: lineItems,
               service_date: serviceDate ? format(serviceDate, 'yyyy-MM-dd') : null,
@@ -202,6 +221,25 @@ export default function NewInvoicePage() {
               </PopoverContent>
             </Popover>
           </div>
+
+          {/* Lead selector */}
+          {!paramLeadId && (
+            <div className="space-y-1.5">
+              <Label>Select Lead</Label>
+              <Select value={selectedLeadId ?? ''} onValueChange={(v) => setSelectedLeadId(v)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Choose a lead…" />
+                </SelectTrigger>
+                <SelectContent>
+                  {allLeads.map((l) => (
+                    <SelectItem key={l.id} value={l.id}>
+                      {l.full_name} {l.phone ? `— ${l.phone}` : ''}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
 
           {/* Bill-to */}
           {lead && (
