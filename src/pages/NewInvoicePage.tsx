@@ -145,12 +145,31 @@ export default function NewInvoicePage() {
         status,
       };
 
-      const { data, error } = await supabase
+      let data: { id: string };
+      const { data: d1, error: e1 } = await supabase
         .from('invoices')
         .insert(payload)
         .select('id')
         .single();
-      if (error) throw error;
+      if (e1) {
+        if (e1.code === '23505') {
+          // Duplicate invoice number — regenerate and retry once
+          const retryNumber = await generateInvoiceNumber();
+          setInvoiceNumber(retryNumber);
+          payload.invoice_number = retryNumber;
+          const { data: d2, error: e2 } = await supabase
+            .from('invoices')
+            .insert(payload)
+            .select('id')
+            .single();
+          if (e2) throw e2;
+          data = d2;
+        } else {
+          throw e1;
+        }
+      } else {
+        data = d1;
+      }
 
       if (status === 'sent') {
         try {

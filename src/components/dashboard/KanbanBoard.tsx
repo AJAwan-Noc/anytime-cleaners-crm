@@ -129,6 +129,7 @@ export default function KanbanBoard() {
 
       toast.success(`Moved "${lead.full_name}" to ${newStage.replace(/_/g, ' ')}`);
       queryClient.invalidateQueries({ queryKey: ['dashboard-kpis'] });
+      queryClient.invalidateQueries({ queryKey: ['not-responding-count'] });
     } catch {
       // Rollback
       queryClient.setQueryData<Lead[]>(['kanban-leads'], (old) =>
