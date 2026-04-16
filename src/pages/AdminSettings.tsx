@@ -11,7 +11,7 @@ import { Switch } from '@/components/ui/switch';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { Loader2, Save, Trash2, Plus } from 'lucide-react';
+import { Loader2, Save, Trash2, Plus, Check } from 'lucide-react';
 import { toast } from 'sonner';
 
 // ── helpers ──
@@ -53,6 +53,61 @@ function SettingsSection({
             Save
           </Button>
         </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+// ── Email toggle items ──
+const EMAIL_TOGGLES = [
+  { key: 'email_welcome_enabled', label: 'Welcome Email', desc: 'Send welcome email to new leads' },
+  { key: 'email_team_alert_enabled', label: 'Team Alerts', desc: 'Alert team members of new leads' },
+  { key: 'email_stage_alert_enabled', label: 'Stage Change Alerts', desc: 'Notify on lead stage changes' },
+  { key: 'email_followup_enabled', label: 'Follow-up Reminders', desc: 'Send automatic follow-up reminders' },
+  { key: 'email_booking_confirmation_enabled', label: 'Booking Confirmation', desc: 'Send booking confirmation to clients' },
+  { key: 'email_invoice_enabled', label: 'Invoice Emails', desc: 'Send invoice emails to clients' },
+  { key: 'email_report_enabled', label: 'AI Reports', desc: 'Send periodic AI summary reports' },
+];
+
+function EmailTogglesSection({ cfg, qc }: { cfg: Record<string, string>; qc: any }) {
+  const [savedKey, setSavedKey] = useState<string | null>(null);
+
+  const toggle = async (key: string, checked: boolean) => {
+    try {
+      const { error } = await supabase
+        .from('admin_config')
+        .upsert({ key, value: String(checked), updated_at: new Date().toISOString() }, { onConflict: 'key' });
+      if (error) throw error;
+      qc.invalidateQueries({ queryKey: ['admin_config'] });
+      setSavedKey(key);
+      setTimeout(() => setSavedKey(null), 1500);
+    } catch (e: any) {
+      toast.error(e.message || 'Failed to save');
+    }
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-lg">Email Notifications</CardTitle>
+        <CardDescription>Toggle which automated emails are active. Changes save automatically.</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {EMAIL_TOGGLES.map((t) => (
+          <div key={t.key} className="flex items-center justify-between py-1">
+            <div className="space-y-0.5">
+              <Label className="text-sm font-medium">{t.label}</Label>
+              <p className="text-xs text-muted-foreground">{t.desc}</p>
+            </div>
+            <div className="flex items-center gap-2">
+              {savedKey === t.key && <Check className="h-4 w-4 text-green-500 animate-in fade-in" />}
+              <Switch
+                checked={cfg[t.key] === 'true'}
+                onCheckedChange={(v) => toggle(t.key, v)}
+              />
+            </div>
+          </div>
+        ))}
       </CardContent>
     </Card>
   );
@@ -411,6 +466,9 @@ export default function AdminSettings() {
           )}
         </CardContent>
       </Card>
+
+      {/* ── Email Notifications ── */}
+      <EmailTogglesSection cfg={cfg} qc={qc} />
 
       {/* Delete confirmation */}
       <AlertDialog open={!!deleteId} onOpenChange={(o) => !o && setDeleteId(null)}>
