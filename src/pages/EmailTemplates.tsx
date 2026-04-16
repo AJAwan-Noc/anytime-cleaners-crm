@@ -7,7 +7,7 @@ import { useNavigate } from 'react-router-dom';
 
 interface EmailTemplate {
   template_key: string;
-  name: string;
+  template_name: string;
   subject: string;
   updated_at: string;
 }
@@ -20,8 +20,8 @@ export default function EmailTemplates() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('email_templates')
-        .select('template_key, name, subject, updated_at')
-        .order('name');
+        .select('template_key, template_name, subject, updated_at')
+        .order('template_name');
       if (error) throw error;
       return data as EmailTemplate[];
     },
@@ -51,7 +51,7 @@ export default function EmailTemplates() {
           {templates.map((t) => (
             <Card key={t.template_key} className="flex flex-col justify-between">
               <CardHeader className="pb-2">
-                <CardTitle className="text-base">{t.name}</CardTitle>
+                <CardTitle className="text-base">{t.template_name}</CardTitle>
                 <p className="text-sm text-muted-foreground truncate">{t.subject}</p>
               </CardHeader>
               <CardContent className="flex items-center justify-between pt-0">
