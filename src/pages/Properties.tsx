@@ -68,7 +68,7 @@ export default function Properties() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All types</SelectItem>
-                {TYPES.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                {TYPES.map((t) => <SelectItem key={t} value={t}>{PROPERTY_TYPE_LABELS[t]}</SelectItem>)}
               </SelectContent>
             </Select>
           </div>
@@ -102,7 +102,7 @@ export default function Properties() {
                     <TableCell className="font-medium">{p.address}</TableCell>
                     <TableCell>
                       <Badge className={PROPERTY_TYPE_COLORS[p.property_type]} variant="secondary">
-                        {p.property_type}
+                        {PROPERTY_TYPE_LABELS[p.property_type]}
                       </Badge>
                     </TableCell>
                     <TableCell>{p.lead?.full_name ?? '—'}</TableCell>

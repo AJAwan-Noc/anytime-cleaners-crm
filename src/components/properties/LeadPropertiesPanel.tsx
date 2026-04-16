@@ -121,7 +121,7 @@ export default function LeadPropertiesPanel({ leadId, leadAddress }: Props) {
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className="font-medium text-sm">{p.address}</span>
                         <Badge className={PROPERTY_TYPE_COLORS[p.property_type]} variant="secondary">
-                          {p.property_type}
+                          {PROPERTY_TYPE_LABELS[p.property_type]}
                         </Badge>
                         {!p.is_active && (
                           <Badge variant="outline" className="text-muted-foreground">Inactive</Badge>

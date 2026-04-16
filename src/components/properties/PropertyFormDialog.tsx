@@ -138,7 +138,7 @@ export default function PropertyFormDialog({
               <Select value={form.property_type} onValueChange={(v) => set('property_type', v as PropertyType)}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  {TYPES.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                  {TYPES.map((t) => <SelectItem key={t} value={t}>{PROPERTY_TYPE_LABELS[t]}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
