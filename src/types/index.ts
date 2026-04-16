@@ -10,7 +10,7 @@ export type InvoiceStatus = 'draft' | 'sent' | 'paid' | 'overdue' | 'cancelled';
 
 export type UpdateType = 'Note' | 'Call' | 'Email' | 'SMS' | 'Stage Change' | 'System';
 
-export type PropertyType = 'Residential' | 'Commercial' | 'Industrial' | 'Other';
+export type PropertyType = 'residential' | 'commercial' | 'industrial' | 'other';
 
 export interface Property {
   id: string;
@@ -32,11 +32,18 @@ export interface Property {
   lead?: Pick<Lead, 'id' | 'full_name'>;
 }
 
+export const PROPERTY_TYPE_LABELS: Record<PropertyType, string> = {
+  residential: 'Residential',
+  commercial: 'Commercial',
+  industrial: 'Industrial',
+  other: 'Other',
+};
+
 export const PROPERTY_TYPE_COLORS: Record<PropertyType, string> = {
-  Residential: 'bg-blue-100 text-blue-800',
-  Commercial: 'bg-purple-100 text-purple-800',
-  Industrial: 'bg-amber-100 text-amber-800',
-  Other: 'bg-gray-100 text-gray-800',
+  residential: 'bg-blue-100 text-blue-800',
+  commercial: 'bg-purple-100 text-purple-800',
+  industrial: 'bg-amber-100 text-amber-800',
+  other: 'bg-gray-100 text-gray-800',
 };
 
 export interface TeamMember {

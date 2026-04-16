@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
-import { Property, PropertyType, PROPERTY_TYPE_COLORS } from '@/types';
+import { Property, PropertyType, PROPERTY_TYPE_COLORS, PROPERTY_TYPE_LABELS } from '@/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -14,7 +14,7 @@ import {
 } from '@/components/ui/select';
 import { Loader2, Search } from 'lucide-react';
 
-const TYPES: PropertyType[] = ['Residential', 'Commercial', 'Industrial', 'Other'];
+const TYPES: PropertyType[] = ['residential', 'commercial', 'industrial', 'other'];
 
 export default function Properties() {
   const navigate = useNavigate();
@@ -68,7 +68,7 @@ export default function Properties() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All types</SelectItem>
-                {TYPES.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                {TYPES.map((t) => <SelectItem key={t} value={t}>{PROPERTY_TYPE_LABELS[t]}</SelectItem>)}
               </SelectContent>
             </Select>
           </div>
@@ -102,7 +102,7 @@ export default function Properties() {
                     <TableCell className="font-medium">{p.address}</TableCell>
                     <TableCell>
                       <Badge className={PROPERTY_TYPE_COLORS[p.property_type]} variant="secondary">
-                        {p.property_type}
+                        {PROPERTY_TYPE_LABELS[p.property_type]}
                       </Badge>
                     </TableCell>
                     <TableCell>{p.lead?.full_name ?? '—'}</TableCell>

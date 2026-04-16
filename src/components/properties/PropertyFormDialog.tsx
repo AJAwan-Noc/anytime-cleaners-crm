@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
-import { Property, PropertyType } from '@/types';
+import { Property, PropertyType, PROPERTY_TYPE_LABELS } from '@/types';
 import {
   Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog';
@@ -15,7 +15,7 @@ import {
 import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
-const TYPES: PropertyType[] = ['Residential', 'Commercial', 'Industrial', 'Other'];
+const TYPES: PropertyType[] = ['residential', 'commercial', 'industrial', 'other'];
 
 interface Props {
   open: boolean;
@@ -40,7 +40,7 @@ type FormState = {
 
 const empty = (defaultAddress?: string | null): FormState => ({
   address: defaultAddress ?? '',
-  property_type: 'Residential',
+  property_type: 'residential',
   bedrooms: '',
   bathrooms: '',
   square_metres: '',
@@ -61,7 +61,7 @@ export default function PropertyFormDialog({
     if (property) {
       setForm({
         address: property.address ?? '',
-        property_type: property.property_type ?? 'Residential',
+        property_type: property.property_type ?? 'residential',
         bedrooms: property.bedrooms?.toString() ?? '',
         bathrooms: property.bathrooms?.toString() ?? '',
         square_metres: property.square_metres?.toString() ?? '',
@@ -138,7 +138,7 @@ export default function PropertyFormDialog({
               <Select value={form.property_type} onValueChange={(v) => set('property_type', v as PropertyType)}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  {TYPES.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                  {TYPES.map((t) => <SelectItem key={t} value={t}>{PROPERTY_TYPE_LABELS[t]}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
