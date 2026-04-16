@@ -1,69 +1,46 @@
 
 
-# Invoice Flow Overhaul
+## Plan: Email Toggles + Email Template Builder
 
-## Summary
-Major rework of the invoice system: new invoice creation page, enhanced detail page with send/delete/duplicate/preview, improved list page with filters, and updated lead detail navigation.
+### Part 1 — Email Notifications Toggle Section (AdminSettings.tsx)
 
-## Changes
+Add a new card section below Notification Recipients with 7 toggle switches. Each toggle reads/writes to `admin_config` using the existing `configMap` pattern.
 
-### 1. New Invoice Page (`src/pages/NewInvoicePage.tsx`)
-- Route: `/invoices/new?lead_id=xxx`
-- Fetch lead by `lead_id` query param, show bill-to section (name, email, phone, address, service_type)
-- Auto-generate invoice number: query `invoices` table ordered by `invoice_number` desc, extract numeric part from `AC-XXXX`, increment, zero-pad to 4 digits
-- Fetch `tax_rate` from `admin_config` table (key = `tax_rate`)
-- Pre-populate first line item with lead's `service_type` as description, qty 1, price 0
-- Service date picker using a date input
-- Layout mirrors `InvoiceDetailPage` (bill-to, line items table, subtotal/GST/total, notes)
-- **Save as Draft**: INSERT into `invoices` with status `draft`, redirect to `/invoices/:id`
-- **Send Invoice to Client**: INSERT into `invoices` with status `sent`, POST to `N8N_BASE_URL/create-invoice` with `{ lead_id, invoice_id, line_items, service_date }`, redirect to `/invoices/:id`
+Toggle keys and descriptions:
+- `email_welcome_enabled` — "Send welcome email to new leads"
+- `email_team_alert_enabled` — "Alert team members of new leads"
+- `email_stage_alert_enabled` — "Notify on lead stage changes"
+- `email_followup_enabled` — "Send automatic follow-up reminders"
+- `email_booking_confirmation_enabled` — "Send booking confirmation to clients"
+- `email_invoice_enabled` — "Send invoice emails to clients"
+- `email_report_enabled` — "Send periodic AI summary reports"
 
-### 2. Lead Detail — Generate Invoice Button (`src/components/leads/LeadDetail.tsx`)
-- Replace the webhook call on "Generate Invoice" with `navigate(`/invoices/new?lead_id=${id}`)`
-- Remove the `webhookAction('create-invoice', ...)` call
+Each toggle auto-saves via upsert on change with a brief check/success indicator (no Save button).
 
-### 3. Invoice Detail Page Updates (`src/pages/InvoiceDetailPage.tsx`)
-- **Rename** "Mark as Sent" to "Send Invoice to Client" — on click: save invoice data, POST to `N8N_BASE_URL/create-invoice` with `{ lead_id, invoice_id, line_items, service_date }`, update status to `sent`
-- **Delete Invoice** button (red, destructive) — confirmation dialog "Delete invoice AC-XXXX? This cannot be undone." On confirm: DELETE from `invoices`, redirect to `/invoices`, success toast
-- **Duplicate Invoice** button — query max invoice number, create new draft with copied line items and new number, redirect to new invoice
-- **Preview** button — opens a Dialog/modal showing styled HTML invoice preview (indigo header with "Anytime Cleaners", bill-to, line items table, totals, footer)
+### Part 2 — Email Template Builder
 
-### 4. Invoice List Page Updates (`src/pages/Invoices.tsx`)
-- Add **status filter** dropdown (All / Draft / Sent / Paid / Overdue / Cancelled) above the table
-- Add **Delete** button per row with confirmation dialog
-- Update summary bar: 4 cards — Total Revenue (paid), Outstanding (sent+overdue), Overdue count (red if > 0), Draft count
-- Add **Create Invoice** button that navigates to `/invoices/new` (no lead pre-selected, user picks from dropdown or leaves blank)
+**Files to create/modify:**
 
-### 5. Route Registration (`src/App.tsx`)
-- Add route for `/invoices/new` pointing to `NewInvoicePage`, protected for admin/manager
+1. **`src/pages/EmailTemplates.tsx`** — List page showing `email_templates` rows as cards (name, subject, updated_at, Edit button linking to `/admin/email-templates/:template_key`).
 
-### 6. Item 5 (Overdue auto-detection)
-- This is an n8n workflow change, not a frontend change. Will be skipped in this implementation — it's a server-side automation concern.
+2. **`src/pages/EmailTemplateEditor.tsx`** — Full-page split editor:
+   - Left (60%): subject input, header color picker, logo URL input + preview, Quill.js WYSIWYG body editor (loaded via CDN script tag), footer text input, variable chips panel that insert at cursor
+   - Right (40%): Live preview div rendering header color bar, logo, body HTML with variables replaced by sample data, footer
+   - Save button (upserts to `email_templates`), Test Email button (POST to `N8N_BASE_URL/test-email`)
+   - Sample data map: `{name}=John Smith, {service}=Deep Clean, {phone}=+61412345678, {address}=42 George St Sydney, {invoice_number}=AC-0001, {new_stage}=Booked, {old_stage}=Contacted, {changed_by}=AJ, {report}=Sample AI report text`
 
-## Technical Details
+3. **`src/components/AppSidebar.tsx`** — Add "Email Templates" nav item at `/admin/email-templates`, visible to owner/admin only, using `Mail` icon from lucide.
 
-**Files created:**
-- `src/pages/NewInvoicePage.tsx` — full new invoice creation form
+4. **`src/App.tsx`** — Add two protected routes under the AppLayout:
+   - `/admin/email-templates` → `EmailTemplates`
+   - `/admin/email-templates/:template_key` → `EmailTemplateEditor`
+   Both wrapped in `ProtectedRoute allowedRoles={['owner', 'admin']}`.
 
-**Files modified:**
-- `src/App.tsx` — add `/invoices/new` route (before `/invoices/:id` to avoid route conflict)
-- `src/components/leads/LeadDetail.tsx` — replace Generate Invoice webhook with navigation
-- `src/pages/InvoiceDetailPage.tsx` — add Send via n8n, Delete, Duplicate, Preview functionality
-- `src/pages/Invoices.tsx` — add status filter, per-row delete, overdue count card
+5. **`index.html`** — Add Quill.js CDN (CSS + JS) in `<head>` for the WYSIWYG editor.
 
-**Invoice number generation** (shared helper):
-```typescript
-async function generateInvoiceNumber(): Promise<string> {
-  const { data } = await supabase
-    .from('invoices')
-    .select('invoice_number')
-    .order('invoice_number', { ascending: false })
-    .limit(1);
-  const last = data?.[0]?.invoice_number;
-  const num = last ? parseInt(last.replace('AC-', ''), 10) + 1 : 1;
-  return `AC-${String(num).padStart(4, '0')}`;
-}
-```
+### Technical Details
 
-**Preview modal** will render a styled div (not an iframe) with indigo header, company name, bill-to details, line items table, totals, and footer text — matching a professional invoice email template.
+- Quill loaded via CDN (`<link>` for snow theme CSS, `<script>` for quill.js). Editor initialized in a `useEffect` with a ref. Variable chip click calls `quill.insertText(quill.getSelection().index, '{variable}')`.
+- Live preview uses `dangerouslySetInnerHTML` with variables replaced by sample data, wrapped in a styled container with dynamic header color and logo.
+- Template row expected schema: `template_key` (PK), `name`, `subject`, `header_color`, `logo_url`, `body_html`, `footer_text`, `variables` (jsonb array of variable names), `updated_at`.
 
