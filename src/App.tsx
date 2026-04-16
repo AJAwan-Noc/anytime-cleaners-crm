@@ -11,6 +11,7 @@ import Pipeline from '@/pages/Pipeline';
 import Leads from '@/pages/Leads';
 import LeadDetailPage from '@/pages/LeadDetailPage';
 import NewLeadPage from '@/pages/NewLeadPage';
+import Properties from '@/pages/Properties';
 import Team from '@/pages/Team';
 import Invoices from '@/pages/Invoices';
 import InvoiceDetailPage from '@/pages/InvoiceDetailPage';
@@ -45,6 +46,14 @@ const App = () => (
               <Route path="/leads" element={<Leads />} />
               <Route path="/leads/new" element={<NewLeadPage />} />
               <Route path="/leads/:id" element={<LeadDetailPage />} />
+              <Route
+                path="/properties"
+                element={
+                  <ProtectedRoute allowedRoles={['owner', 'admin', 'manager']}>
+                    <Properties />
+                  </ProtectedRoute>
+                }
+              />
               <Route
                 path="/team"
                 element={
