@@ -222,6 +222,25 @@ export default function NewInvoicePage() {
             </Popover>
           </div>
 
+          {/* Lead selector */}
+          {!paramLeadId && (
+            <div className="space-y-1.5">
+              <Label>Select Lead</Label>
+              <Select value={selectedLeadId ?? ''} onValueChange={(v) => setSelectedLeadId(v)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Choose a lead…" />
+                </SelectTrigger>
+                <SelectContent>
+                  {allLeads.map((l) => (
+                    <SelectItem key={l.id} value={l.id}>
+                      {l.full_name} {l.phone ? `— ${l.phone}` : ''}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
           {/* Bill-to */}
           {lead && (
             <div className="rounded-md border p-4">
