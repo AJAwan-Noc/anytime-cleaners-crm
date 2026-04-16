@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { supabase, N8N_BASE_URL } from '@/lib/supabase';
@@ -17,6 +18,10 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import {
   Table, TableHeader, TableBody, TableRow, TableHead, TableCell,
 } from '@/components/ui/table';
@@ -46,6 +51,7 @@ export default function NewInvoicePage() {
   const [notes, setNotes] = useState('');
   const [serviceDate, setServiceDate] = useState<Date | undefined>(new Date());
   const [saving, setSaving] = useState<string | null>(null);
+  const [confirmSend, setConfirmSend] = useState(false);
 
   // Fetch all leads for the dropdown when no lead_id param
   const { data: allLeads = [] } = useQuery({
@@ -350,13 +356,31 @@ export default function NewInvoicePage() {
             </Button>
             <Button
               variant="outline"
-              onClick={() => saveInvoice('sent')}
+              onClick={() => setConfirmSend(true)}
               disabled={!!saving}
             >
               {saving === 'sent' && <Loader2 className="mr-1 h-4 w-4 animate-spin" />}
               Send Invoice to Client
             </Button>
           </div>
+
+          {/* Confirm send dialog */}
+          <AlertDialog open={confirmSend} onOpenChange={setConfirmSend}>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Send Invoice {invoiceNumber}?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This will send the invoice to the client. Are you sure?
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={() => { setConfirmSend(false); saveInvoice('sent'); }}>
+                  Send Invoice
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </CardContent>
       </Card>
     </div>
