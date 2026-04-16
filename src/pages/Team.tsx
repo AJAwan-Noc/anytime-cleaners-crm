@@ -168,7 +168,9 @@ export default function Team() {
           body: JSON.stringify({ name: form.name, email: form.email, phone: form.phone || null, role: form.role, password: 'Welcome123!' }),
         });
         const data = await res.json();
-        if (!res.ok) throw new Error(data.error || 'Failed to create member');
+        if (!res.ok || data.success === false) {
+          throw new Error(data.error || 'Failed to create member');
+        }
         toast.success('Member added');
       }
       queryClient.invalidateQueries({ queryKey: ['team-members'] });
