@@ -17,6 +17,7 @@ import NewInvoicePage from '@/pages/NewInvoicePage';
 import AdminSettings from '@/pages/AdminSettings';
 import EmailTemplates from '@/pages/EmailTemplates';
 import EmailTemplateEditor from '@/pages/EmailTemplateEditor';
+import PublicFeedback from '@/pages/PublicFeedback';
 import NotFound from '@/pages/NotFound';
 
 
@@ -30,6 +31,7 @@ const App = () => (
         <AuthProvider>
           <Routes>
             <Route path="/login" element={<Login />} />
+            <Route path="/feedback" element={<PublicFeedback />} />
             <Route
               element={
                 <ProtectedRoute>

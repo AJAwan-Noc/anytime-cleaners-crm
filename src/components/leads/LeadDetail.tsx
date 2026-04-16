@@ -19,6 +19,7 @@ import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { Loader2, ArrowLeft, Archive, FileText, BarChart3 } from 'lucide-react';
 import { formatDistanceToNow, format } from 'date-fns';
+import LeadFeedbackPanel from '@/components/leads/LeadFeedbackPanel';
 
 const SOURCES: LeadSource[] = ['website', 'facebook', 'instagram', 'referral', 'google', 'manual', 'other'];
 const STAGES: LeadStage[] = ['new_lead', 'contacted', 'quote_sent', 'not_responding', 'booked', 'not_interested'];
@@ -405,6 +406,8 @@ export default function LeadDetail() {
                 )}
               </CardContent>
             </Card>
+
+            <LeadFeedbackPanel leadId={id!} />
           </div>
         )}
       </div>
