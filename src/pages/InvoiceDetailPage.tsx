@@ -357,7 +357,7 @@ export default function InvoiceDetailPage() {
             </Button>
             <Button
               variant="outline"
-              onClick={() => saveInvoice('sent')}
+              onClick={() => setConfirmSend(true)}
               disabled={!!saving}
             >
               {saving === 'sent' && <Loader2 className="mr-1 h-4 w-4 animate-spin" />}
@@ -394,6 +394,24 @@ export default function InvoiceDetailPage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Confirm send dialog */}
+      <AlertDialog open={confirmSend} onOpenChange={setConfirmSend}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Send Invoice to Client</AlertDialogTitle>
+            <AlertDialogDescription>
+              Send invoice {invoice.invoice_number} to the client? This will email the invoice and mark it as sent.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={() => { setConfirmSend(false); saveInvoice('sent'); }}>
+              Send Invoice
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Confirm paid dialog */}
       <AlertDialog open={confirmPaid} onOpenChange={setConfirmPaid}>
