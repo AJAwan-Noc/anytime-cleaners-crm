@@ -21,7 +21,7 @@ import { Loader2, ArrowLeft, Archive, FileText, BarChart3 } from 'lucide-react';
 import { formatDistanceToNow, format } from 'date-fns';
 
 const SOURCES: LeadSource[] = ['website', 'facebook', 'instagram', 'referral', 'google', 'manual', 'other'];
-const STAGES: LeadStage[] = ['new_lead', 'contacted', 'not_responding', 'booked', 'not_interested'];
+const STAGES: LeadStage[] = ['new_lead', 'contacted', 'quote_sent', 'not_responding', 'booked', 'not_interested'];
 const SERVICE_TYPES = ['Regular Cleaning', 'Deep Clean', 'Move-In-Out', 'Commercial', 'Window Cleaning', 'Other'];
 const UPDATE_TYPES: UpdateType[] = ['Note', 'Call', 'Email', 'SMS', 'Stage Change', 'System'];
 

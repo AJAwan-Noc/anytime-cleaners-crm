@@ -18,7 +18,7 @@ import KanbanCard from './KanbanCard';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
 
-const STAGES: LeadStage[] = ['new_lead', 'contacted', 'not_responding', 'booked', 'not_interested'];
+const STAGES: LeadStage[] = ['new_lead', 'contacted', 'quote_sent', 'not_responding', 'booked', 'not_interested'];
 
 export default function KanbanBoard() {
   const { role, teamMember } = useAuth();
@@ -66,7 +66,7 @@ export default function KanbanBoard() {
 
   const columns = useMemo(() => {
     const map: Record<LeadStage, Lead[]> = {
-      new_lead: [], contacted: [], not_responding: [], booked: [], not_interested: [],
+      new_lead: [], contacted: [], quote_sent: [], not_responding: [], booked: [], not_interested: [],
     };
     leads.forEach((l) => map[l.stage]?.push(l));
     return map;
@@ -113,13 +113,18 @@ export default function KanbanBoard() {
       if (error) throw error;
 
       // Fire n8n webhook (fire-and-forget)
-      const webhookPayload = {
+      const webhookPayload: Record<string, unknown> = {
         lead_id: lead.id,
         old_stage: oldStage,
         new_stage: newStage,
         lead_name: lead.full_name,
         changed_by: teamMember?.name ?? 'Unknown',
       };
+      // Include extra fields for booked stage so booking confirmation email can use them
+      if (newStage === 'booked') {
+        webhookPayload.service_type = lead.service_type;
+        webhookPayload.address = lead.address;
+      }
       console.log('[stage-change webhook] payload:', webhookPayload);
       fetch(`${N8N_BASE_URL}/stage-change`, {
         method: 'POST',

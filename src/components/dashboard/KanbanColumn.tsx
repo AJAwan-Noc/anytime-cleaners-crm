@@ -6,6 +6,7 @@ import KanbanCard from './KanbanCard';
 const COLUMN_HEADER_COLORS: Record<LeadStage, string> = {
   new_lead: 'bg-blue-500',
   contacted: 'bg-yellow-500',
+  quote_sent: 'bg-amber-500',
   not_responding: 'bg-orange-500',
   booked: 'bg-green-500',
   not_interested: 'bg-red-500',
