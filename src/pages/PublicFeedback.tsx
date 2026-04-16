@@ -60,24 +60,36 @@ export default function PublicFeedback() {
   const handleSubmit = async () => {
     if (!row || !canSubmit) return;
     setSubmitting(true);
-    const average = (overall + cleaning + punctuality + value) / 4;
-    const { error: err } = await supabase
+
+    const averageRating = parseFloat(
+      (((overall + cleaning + punctuality + value) / 4)).toFixed(2),
+    );
+
+    const payload = {
+      overall_satisfaction: overall,
+      cleaning_quality: cleaning,
+      punctuality,
+      value_for_money: value,
+      would_recommend: recommend,
+      review_text: review.trim() || null,
+      submitted: true,
+      submitted_at: new Date().toISOString(),
+      average_rating: averageRating,
+    };
+
+    console.log('[Feedback] Submitting payload:', payload, 'token:', row.token);
+
+    const { data, error: err } = await supabase
       .from('feedback')
-      .update({
-        overall_satisfaction: overall,
-        cleaning_quality: cleaning,
-        punctuality,
-        value_for_money: value,
-        would_recommend: recommend,
-        review_text: review.trim() || null,
-        submitted: true,
-        submitted_at: new Date().toISOString(),
-        average_rating: Number(average.toFixed(2)),
-      })
-      .eq('token', row.token);
+      .update(payload)
+      .eq('token', row.token)
+      .select();
+
+    console.log('[Feedback] Supabase response:', { data, error: err });
+
     setSubmitting(false);
     if (err) {
-      setError('Failed to submit feedback. Please try again.');
+      setError(`Failed to submit feedback: ${err.message}`);
       return;
     }
     setSubmitted(true);
