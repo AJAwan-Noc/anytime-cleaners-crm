@@ -121,14 +121,14 @@ export default function NewInvoicePage() {
     setLineItems(prev => prev.filter((_, i) => i !== idx));
 
   const saveInvoice = async (status: 'draft' | 'sent') => {
-    if (!leadId) {
+    if (!selectedLeadId) {
       toast.error('No lead selected');
       return;
     }
     setSaving(status);
     try {
       const payload = {
-        lead_id: leadId,
+        lead_id: selectedLeadId,
         invoice_number: invoiceNumber,
         service_date: serviceDate ? format(serviceDate, 'yyyy-MM-dd') : null,
         line_items: lineItems.map(li => ({ ...li, total: li.quantity * li.unit_price })),
@@ -152,7 +152,7 @@ export default function NewInvoicePage() {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              lead_id: leadId,
+              lead_id: selectedLeadId,
               invoice_id: data.id,
               line_items: lineItems,
               service_date: serviceDate ? format(serviceDate, 'yyyy-MM-dd') : null,
