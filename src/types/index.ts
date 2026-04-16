@@ -1,6 +1,6 @@
 export type Role = 'owner' | 'admin' | 'manager' | 'agent';
 
-export type LeadStage = 'new_lead' | 'contacted' | 'not_responding' | 'booked' | 'not_interested';
+export type LeadStage = 'new_lead' | 'contacted' | 'quote_sent' | 'not_responding' | 'booked' | 'not_interested';
 
 export type LeadSource = 'website' | 'facebook' | 'instagram' | 'referral' | 'google' | 'manual' | 'other';
 
@@ -104,6 +104,7 @@ export interface CAPILog {
 export const STAGE_LABELS: Record<LeadStage, string> = {
   new_lead: 'New Lead',
   contacted: 'Contacted',
+  quote_sent: 'Quote Sent',
   not_responding: 'Not Responding',
   booked: 'Booked',
   not_interested: 'Not Interested',
@@ -112,6 +113,7 @@ export const STAGE_LABELS: Record<LeadStage, string> = {
 export const STAGE_COLORS: Record<LeadStage, string> = {
   new_lead: 'bg-blue-100 text-blue-800',
   contacted: 'bg-yellow-100 text-yellow-800',
+  quote_sent: 'bg-amber-100 text-amber-800',
   not_responding: 'bg-orange-100 text-orange-800',
   booked: 'bg-green-100 text-green-800',
   not_interested: 'bg-red-100 text-red-800',

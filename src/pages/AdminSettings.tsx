@@ -104,8 +104,7 @@ export default function AdminSettings() {
         for (const [key, value] of Object.entries(keys)) {
           const { error } = await supabase
             .from('admin_config')
-            .update({ value, updated_at: new Date().toISOString() })
-            .eq('key', key);
+            .upsert({ key, value, updated_at: new Date().toISOString() }, { onConflict: 'key' });
           if (error) throw error;
         }
         toast.success(`${section} settings saved`);
