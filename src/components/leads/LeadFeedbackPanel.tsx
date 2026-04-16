@@ -11,10 +11,10 @@ interface FeedbackRow {
   submitted: boolean;
   submitted_at: string | null;
   sent_at: string | null;
-  overall_satisfaction: number | null;
-  cleaning_quality: number | null;
-  punctuality: number | null;
-  value_for_money: number | null;
+  rating_overall: number | null;
+  rating_cleaning: number | null;
+  rating_punctuality: number | null;
+  rating_value: number | null;
   would_recommend: 'yes' | 'no' | 'maybe' | null;
   review_text: string | null;
   average_rating: number | null;
@@ -73,10 +73,10 @@ export default function LeadFeedbackPanel({ leadId }: { leadId: string }) {
             </div>
 
             <div className="space-y-2 text-sm">
-              <CategoryRow label="Overall" value={data.overall_satisfaction} />
-              <CategoryRow label="Cleaning" value={data.cleaning_quality} />
-              <CategoryRow label="Punctuality" value={data.punctuality} />
-              <CategoryRow label="Value" value={data.value_for_money} />
+              <CategoryRow label="Overall" value={data.rating_overall} />
+              <CategoryRow label="Cleaning" value={data.rating_cleaning} />
+              <CategoryRow label="Punctuality" value={data.rating_punctuality} />
+              <CategoryRow label="Value" value={data.rating_value} />
             </div>
 
             {data.would_recommend && (
