@@ -113,16 +113,18 @@ export default function KanbanBoard() {
       if (error) throw error;
 
       // Fire n8n webhook (fire-and-forget)
+      const webhookPayload = {
+        lead_id: lead.id,
+        old_stage: oldStage,
+        new_stage: newStage,
+        lead_name: lead.full_name,
+        changed_by: teamMember?.name ?? 'Unknown',
+      };
+      console.log('[stage-change webhook] payload:', webhookPayload);
       fetch(`${N8N_BASE_URL}/stage-change`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          lead_id: lead.id,
-          new_stage: newStage,
-          old_stage: oldStage,
-          changed_by: teamMember?.name ?? 'Unknown',
-          lead_name: lead.full_name,
-        }),
+        body: JSON.stringify(webhookPayload),
       }).catch(() => {}); // silent fail for webhook
 
       toast.success(`Moved "${lead.full_name}" to ${newStage.replace(/_/g, ' ')}`);
