@@ -55,6 +55,7 @@ export default function InvoiceDetailPage() {
   const [saving, setSaving] = useState<string | null>(null);
   const [confirmPaid, setConfirmPaid] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [confirmSend, setConfirmSend] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
 
   const { data: invoice, isLoading } = useQuery({
