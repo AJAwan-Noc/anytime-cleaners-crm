@@ -30,7 +30,7 @@ const SAMPLE_DATA: Record<string, string> = {
 function replaceVariables(html: string) {
   let result = html;
   for (const [k, v] of Object.entries(SAMPLE_DATA)) {
-    result = result.replaceAll(k, `<span style="background:#fef3c7;padding:1px 4px;border-radius:3px">${v}</span>`);
+    result = result.split(k).join(`<span style="background:#fef3c7;padding:1px 4px;border-radius:3px">${v}</span>`);
   }
   return result;
 }
