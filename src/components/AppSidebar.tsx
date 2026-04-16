@@ -4,6 +4,7 @@ import {
   UserCog,
   FileText,
   Settings,
+  Mail,
 } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { useAuth } from '@/contexts/AuthContext';
@@ -32,6 +33,7 @@ const navItems: NavItem[] = [
   { title: 'Team', url: '/team', icon: UserCog, roles: ['owner', 'admin', 'manager'] },
   { title: 'Invoices', url: '/invoices', icon: FileText, roles: ['owner', 'admin', 'manager'] },
   { title: 'Admin', url: '/admin', icon: Settings, roles: ['owner', 'admin'] },
+  { title: 'Email Templates', url: '/admin/email-templates', icon: Mail, roles: ['owner', 'admin'] },
 ];
 
 export function AppSidebar() {

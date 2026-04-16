@@ -15,6 +15,8 @@ import Invoices from '@/pages/Invoices';
 import InvoiceDetailPage from '@/pages/InvoiceDetailPage';
 import NewInvoicePage from '@/pages/NewInvoicePage';
 import AdminSettings from '@/pages/AdminSettings';
+import EmailTemplates from '@/pages/EmailTemplates';
+import EmailTemplateEditor from '@/pages/EmailTemplateEditor';
 import NotFound from '@/pages/NotFound';
 
 
@@ -76,6 +78,22 @@ const App = () => (
                 element={
                   <ProtectedRoute allowedRoles={['owner', 'admin']}>
                     <AdminSettings />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/email-templates"
+                element={
+                  <ProtectedRoute allowedRoles={['owner', 'admin']}>
+                    <EmailTemplates />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/email-templates/:template_key"
+                element={
+                  <ProtectedRoute allowedRoles={['owner', 'admin']}>
+                    <EmailTemplateEditor />
                   </ProtectedRoute>
                 }
               />
