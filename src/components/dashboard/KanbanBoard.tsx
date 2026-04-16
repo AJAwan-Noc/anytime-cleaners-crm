@@ -20,7 +20,11 @@ import { toast } from 'sonner';
 
 const STAGES: LeadStage[] = ['new_lead', 'contacted', 'quote_sent', 'not_responding', 'booked', 'not_interested'];
 
-export default function KanbanBoard() {
+interface KanbanBoardProps {
+  fullHeight?: boolean;
+}
+
+export default function KanbanBoard({ fullHeight = false }: KanbanBoardProps) {
   const { role, teamMember } = useAuth();
   const queryClient = useQueryClient();
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -144,9 +148,13 @@ export default function KanbanBoard() {
     }
   };
 
+  const wrapperClass = fullHeight
+    ? 'flex gap-4 overflow-x-auto pb-2 h-full min-h-0'
+    : 'flex gap-4 overflow-x-auto pb-4';
+
   if (isLoading) {
     return (
-      <div className="flex gap-4 overflow-x-auto pb-4">
+      <div className={wrapperClass}>
         {STAGES.map((s) => (
           <Skeleton key={s} className="min-w-[260px] h-96 rounded-lg" />
         ))}
@@ -161,9 +169,9 @@ export default function KanbanBoard() {
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
     >
-      <div className="flex gap-4 overflow-x-auto pb-4">
+      <div className={wrapperClass}>
         {STAGES.map((stage) => (
-          <KanbanColumn key={stage} stage={stage} leads={columns[stage]} />
+          <KanbanColumn key={stage} stage={stage} leads={columns[stage]} fullHeight={fullHeight} />
         ))}
       </div>
       <DragOverlay>

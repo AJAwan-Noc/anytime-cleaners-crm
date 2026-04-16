@@ -15,15 +15,16 @@ const COLUMN_HEADER_COLORS: Record<LeadStage, string> = {
 interface KanbanColumnProps {
   stage: LeadStage;
   leads: Lead[];
+  fullHeight?: boolean;
 }
 
-export default function KanbanColumn({ stage, leads }: KanbanColumnProps) {
+export default function KanbanColumn({ stage, leads, fullHeight = false }: KanbanColumnProps) {
   const { setNodeRef, isOver } = useDroppable({ id: stage });
 
   return (
     <div
       ref={setNodeRef}
-      className={`flex flex-col min-w-[260px] w-[260px] rounded-lg border bg-muted/50 transition-colors ${isOver ? 'ring-2 ring-primary/40' : ''}`}
+      className={`flex flex-col min-w-[260px] w-[260px] rounded-lg border bg-muted/50 transition-colors ${fullHeight ? 'h-full min-h-0' : ''} ${isOver ? 'ring-2 ring-primary/40' : ''}`}
     >
       <div className="flex items-center gap-2 p-3 border-b">
         <div className={`w-2.5 h-2.5 rounded-full ${COLUMN_HEADER_COLORS[stage]}`} />
@@ -32,7 +33,7 @@ export default function KanbanColumn({ stage, leads }: KanbanColumnProps) {
           {leads.length}
         </span>
       </div>
-      <div className="flex-1 p-2 space-y-2 overflow-y-auto max-h-[calc(100vh-320px)]">
+      <div className={`flex-1 p-2 space-y-2 overflow-y-auto ${fullHeight ? 'min-h-0' : 'max-h-[calc(100vh-320px)]'}`}>
         <SortableContext items={leads.map((l) => l.id)} strategy={verticalListSortingStrategy}>
           {leads.map((lead) => (
             <KanbanCard key={lead.id} lead={lead} />

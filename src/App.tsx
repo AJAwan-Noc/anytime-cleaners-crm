@@ -7,6 +7,7 @@ import ProtectedRoute from '@/components/ProtectedRoute';
 import AppLayout from '@/components/AppLayout';
 import Login from '@/pages/Login';
 import Dashboard from '@/pages/Dashboard';
+import Pipeline from '@/pages/Pipeline';
 import Leads from '@/pages/Leads';
 import LeadDetailPage from '@/pages/LeadDetailPage';
 import NewLeadPage from '@/pages/NewLeadPage';
@@ -40,6 +41,7 @@ const App = () => (
               }
             >
               <Route path="/" element={<Dashboard />} />
+              <Route path="/pipeline" element={<Pipeline />} />
               <Route path="/leads" element={<Leads />} />
               <Route path="/leads/new" element={<NewLeadPage />} />
               <Route path="/leads/:id" element={<LeadDetailPage />} />
