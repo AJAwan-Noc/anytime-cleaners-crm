@@ -20,6 +20,7 @@ import { toast } from 'sonner';
 import { Loader2, ArrowLeft, Archive, FileText, BarChart3 } from 'lucide-react';
 import { formatDistanceToNow, format } from 'date-fns';
 import LeadFeedbackPanel from '@/components/leads/LeadFeedbackPanel';
+import LeadPropertiesPanel from '@/components/properties/LeadPropertiesPanel';
 
 const SOURCES: LeadSource[] = ['website', 'facebook', 'instagram', 'referral', 'google', 'manual', 'other'];
 const STAGES: LeadStage[] = ['new_lead', 'contacted', 'quote_sent', 'not_responding', 'booked', 'not_interested'];
@@ -408,6 +409,14 @@ export default function LeadDetail() {
             </Card>
 
             <LeadFeedbackPanel leadId={id!} />
+
+            <LeadPropertiesPanel leadId={id!} leadAddress={lead.address} />
+          </div>
+        )}
+
+        {isAgent && (
+          <div className="space-y-6">
+            <LeadPropertiesPanel leadId={id!} leadAddress={lead.address} />
           </div>
         )}
       </div>
