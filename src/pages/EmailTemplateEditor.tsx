@@ -37,7 +37,7 @@ function replaceVariables(html: string) {
 
 interface TemplateRow {
   template_key: string;
-  name: string;
+  template_name: string;
   subject: string;
   header_color: string;
   logo_url: string;
@@ -204,7 +204,7 @@ export default function EmailTemplateEditor() {
         <Button variant="ghost" size="icon" onClick={() => navigate('/admin/email-templates')}>
           <ArrowLeft className="h-4 w-4" />
         </Button>
-        <h1 className="text-xl font-bold">{template.name}</h1>
+        <h1 className="text-xl font-bold">{template.template_name}</h1>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
