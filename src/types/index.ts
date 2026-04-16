@@ -68,6 +68,8 @@ export interface Invoice {
   total: number;
   status: InvoiceStatus;
   notes: string | null;
+  paid_at: string | null;
+  payment_method: string | null;
   created_at: string;
   // joined
   lead?: Lead;

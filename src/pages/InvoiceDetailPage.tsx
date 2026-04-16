@@ -21,6 +21,7 @@ import {
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog';
+import MarkPaidDialog, { PaymentMethod } from '@/components/invoices/MarkPaidDialog';
 
 type InvoiceWithLead = Omit<Invoice, 'lead'> & {
   lead: {
@@ -54,6 +55,7 @@ export default function InvoiceDetailPage() {
   const [notes, setNotes] = useState('');
   const [saving, setSaving] = useState<string | null>(null);
   const [confirmPaid, setConfirmPaid] = useState(false);
+  const [markingPaid, setMarkingPaid] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [confirmSend, setConfirmSend] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
