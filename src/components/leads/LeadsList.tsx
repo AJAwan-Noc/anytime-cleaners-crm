@@ -1,12 +1,13 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { Lead, TeamMember, LeadStage, LeadSource, STAGE_LABELS, STAGE_COLORS } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Select,
   SelectContent,
@@ -24,6 +25,8 @@ import {
 } from '@/components/ui/table';
 import { Plus, Search, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
+import { toast } from 'sonner';
+import LeadsBulkActionBar from './LeadsBulkActionBar';
 
 const SOURCE_LABELS: Record<LeadSource, string> = {
   website: 'Website',
@@ -37,11 +40,17 @@ const SOURCE_LABELS: Record<LeadSource, string> = {
 
 export default function LeadsList() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { role, teamMember } = useAuth();
   const [search, setSearch] = useState('');
   const [stageFilter, setStageFilter] = useState<string>('all');
   const [sourceFilter, setSourceFilter] = useState<string>('all');
   const [agentFilter, setAgentFilter] = useState<string>('all');
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [bulkAssignTo, setBulkAssignTo] = useState<string>('');
+  const [bulkLoading, setBulkLoading] = useState<'assign' | 'archive' | null>(null);
+
+  const canBulk = role === 'owner' || role === 'admin' || role === 'manager';
 
   const { data: members = [] } = useQuery({
     queryKey: ['team-members-active'],
@@ -87,7 +96,7 @@ export default function LeadsList() {
     },
   });
 
-  const filtered = leads.filter((lead) => {
+  const filtered = useMemo(() => leads.filter((lead) => {
     if (stageFilter !== 'all' && lead.stage !== stageFilter) return false;
     if (sourceFilter !== 'all' && lead.source !== sourceFilter) return false;
     if (agentFilter !== 'all' && lead.assigned_to !== agentFilter) return false;
@@ -100,7 +109,78 @@ export default function LeadsList() {
         return false;
     }
     return true;
-  });
+  }), [leads, stageFilter, sourceFilter, agentFilter, search]);
+
+  const allFilteredSelected = filtered.length > 0 && filtered.every((l) => selected.has(l.id));
+  const someFilteredSelected = filtered.some((l) => selected.has(l.id));
+
+  const toggleAll = () => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (allFilteredSelected) {
+        filtered.forEach((l) => next.delete(l.id));
+      } else {
+        filtered.forEach((l) => next.add(l.id));
+      }
+      return next;
+    });
+  };
+
+  const toggleOne = (id: string) => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const clearSelection = () => {
+    setSelected(new Set());
+    setBulkAssignTo('');
+  };
+
+  const handleApplyAssignment = async () => {
+    if (!bulkAssignTo || selected.size === 0) return;
+    setBulkLoading('assign');
+    try {
+      const ids = Array.from(selected);
+      const { error } = await supabase
+        .from('leads')
+        .update({ assigned_to: bulkAssignTo })
+        .in('id', ids);
+      if (error) throw error;
+      toast.success(`Assigned ${ids.length} lead${ids.length > 1 ? 's' : ''}`);
+      clearSelection();
+      queryClient.invalidateQueries({ queryKey: ['leads-list'] });
+      queryClient.invalidateQueries({ queryKey: ['kanban-leads'] });
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to assign leads');
+    } finally {
+      setBulkLoading(null);
+    }
+  };
+
+  const handleArchive = async () => {
+    if (selected.size === 0) return;
+    setBulkLoading('archive');
+    try {
+      const ids = Array.from(selected);
+      const { error } = await supabase
+        .from('leads')
+        .update({ is_archived: true })
+        .in('id', ids);
+      if (error) throw error;
+      toast.success(`Archived ${ids.length} lead${ids.length > 1 ? 's' : ''}`);
+      clearSelection();
+      queryClient.invalidateQueries({ queryKey: ['leads-list'] });
+      queryClient.invalidateQueries({ queryKey: ['kanban-leads'] });
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to archive leads');
+    } finally {
+      setBulkLoading(null);
+    }
+  };
 
   return (
     <div className="space-y-4">
@@ -174,6 +254,15 @@ export default function LeadsList() {
           <Table>
             <TableHeader>
               <TableRow>
+                {canBulk && (
+                  <TableHead className="w-[40px]">
+                    <Checkbox
+                      checked={allFilteredSelected ? true : someFilteredSelected ? 'indeterminate' : false}
+                      onCheckedChange={toggleAll}
+                      aria-label="Select all"
+                    />
+                  </TableHead>
+                )}
                 <TableHead>Name</TableHead>
                 <TableHead>Phone</TableHead>
                 <TableHead>Service</TableHead>
@@ -187,9 +276,19 @@ export default function LeadsList() {
               {filtered.map((lead) => (
                 <TableRow
                   key={lead.id}
+                  data-state={selected.has(lead.id) ? 'selected' : undefined}
                   className="cursor-pointer"
                   onClick={() => navigate(`/leads/${lead.id}`)}
                 >
+                  {canBulk && (
+                    <TableCell onClick={(e) => e.stopPropagation()}>
+                      <Checkbox
+                        checked={selected.has(lead.id)}
+                        onCheckedChange={() => toggleOne(lead.id)}
+                        aria-label={`Select ${lead.full_name}`}
+                      />
+                    </TableCell>
+                  )}
                   <TableCell className="font-medium">{lead.full_name}</TableCell>
                   <TableCell>{lead.phone}</TableCell>
                   <TableCell>{lead.service_type}</TableCell>
@@ -208,6 +307,19 @@ export default function LeadsList() {
             </TableBody>
           </Table>
         </div>
+      )}
+
+      {canBulk && (
+        <LeadsBulkActionBar
+          selectedCount={selected.size}
+          members={members}
+          assignTo={bulkAssignTo}
+          onAssignToChange={setBulkAssignTo}
+          onApplyAssignment={handleApplyAssignment}
+          onArchive={handleArchive}
+          onClear={clearSelection}
+          loading={bulkLoading}
+        />
       )}
     </div>
   );
