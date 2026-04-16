@@ -84,8 +84,15 @@ export default function LeadDetail() {
   });
 
   useEffect(() => {
-    if (lead) setForm(lead);
-  }, [lead]);
+    if (lead) {
+      if (role === 'agent' && teamMember && lead.assigned_to !== teamMember.id) {
+        toast.error('You do not have access to this lead.');
+        navigate('/leads');
+        return;
+      }
+      setForm(lead);
+    }
+  }, [lead, role, teamMember, navigate]);
 
   const saveMutation = useMutation({
     mutationFn: async () => {
