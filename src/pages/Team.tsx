@@ -2,10 +2,11 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase, N8N_BASE_URL } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
-import { TeamMember, Role } from '@/types';
+import { TeamMember, Role, CleanerType } from '@/types';
 import { logActivity } from '@/lib/activityLog';
 import { toast } from 'sonner';
-import { Loader2, Plus, Pencil, Trash2, Users, KeyRound } from 'lucide-react';
+import { Loader2, Plus, Pencil, Trash2, Users, KeyRound, BarChart3 } from 'lucide-react';
+import MemberStatsDialog from '@/components/team/MemberStatsDialog';
 import {
   Table, TableHeader, TableBody, TableRow, TableHead, TableCell,
 } from '@/components/ui/table';
@@ -42,9 +43,12 @@ interface MemberForm {
   email: string;
   phone: string;
   role: Role;
+  cleaner_type: CleanerType | '';
 }
 
-const emptyForm: MemberForm = { name: '', email: '', phone: '', role: 'agent' };
+const emptyForm: MemberForm = { name: '', email: '', phone: '', role: 'agent', cleaner_type: '' };
+
+const CLEANER_TYPES: CleanerType[] = ['residential', 'commercial', 'specialist', 'general'];
 
 /** Which roles can the current user create/edit? */
 function getAllowedRoles(currentRole: Role | null): Role[] {

@@ -3,6 +3,7 @@ import KPICards from '@/components/dashboard/KPICards';
 import LeadSourcesChart from '@/components/dashboard/LeadSourcesChart';
 import SourceConversion from '@/components/dashboard/SourceConversion';
 import RecentReviews from '@/components/dashboard/RecentReviews';
+import CleanerPerformance from '@/components/dashboard/CleanerPerformance';
 
 export default function Dashboard() {
   const { role } = useAuth();
@@ -11,6 +12,7 @@ export default function Dashboard() {
   return (
     <div className="space-y-6">
       {showAnalytics && <KPICards />}
+      {showAnalytics && <CleanerPerformance />}
       {showAnalytics && <LeadSourcesChart />}
       {showAnalytics && <SourceConversion />}
       {showAnalytics && <RecentReviews />}
