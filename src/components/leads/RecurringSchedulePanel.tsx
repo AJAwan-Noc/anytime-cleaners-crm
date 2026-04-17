@@ -72,7 +72,7 @@ export default function RecurringSchedulePanel({ leadId }: { leadId: string }) {
       <CardContent>
         {active ? (
           <div className="space-y-2 text-sm">
-            <p><span className="text-muted-foreground">Type:</span> <span className="font-medium">{TYPE_LABELS[active.schedule_type]}</span></p>
+            <p><span className="text-muted-foreground">Type:</span> <span className="font-medium">{TYPE_LABELS[(active.schedule_type === 'custom_days' ? 'every_x_days' : active.schedule_type) as ScheduleType]}</span></p>
             <p><span className="text-muted-foreground">Time:</span> {active.scheduled_time?.slice(0, 5)}</p>
             {active.start_date && <p><span className="text-muted-foreground">From:</span> {format(new Date(active.start_date), 'PP')}</p>}
             {active.end_date && <p><span className="text-muted-foreground">To:</span> {format(new Date(active.end_date), 'PP')}</p>}
@@ -111,7 +111,8 @@ function ScheduleDialog({
   existing: RecurringSchedule | null;
   onSaved: () => void;
 }) {
-  const [type, setType] = useState<ScheduleType>(existing?.schedule_type ?? 'weekly');
+  const initialType: ScheduleType = existing?.schedule_type === 'custom_days' ? 'every_x_days' : (existing?.schedule_type as ScheduleType) ?? 'weekly';
+  const [type, setType] = useState<ScheduleType>(initialType);
   const [startDate, setStartDate] = useState<string>(existing?.start_date ?? '');
   const [endDate, setEndDate] = useState<string>(existing?.end_date ?? '');
   const [time, setTime] = useState(existing?.scheduled_time?.slice(0, 5) ?? '09:00');
