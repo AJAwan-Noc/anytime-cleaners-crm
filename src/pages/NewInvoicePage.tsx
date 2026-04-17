@@ -191,6 +191,15 @@ export default function NewInvoicePage() {
         }
       }
 
+      await logActivity({
+        event_type: 'invoice_created',
+        actor_id: teamMember?.id,
+        actor_name: teamMember?.name,
+        entity_type: 'invoice',
+        entity_id: data.id,
+        description: `Invoice ${invoiceNumber} created (${status})`,
+      });
+
       toast.success(status === 'draft' ? 'Invoice saved as draft' : 'Invoice sent to client');
       navigate(`/invoices/${data.id}`);
     } catch (err: any) {
