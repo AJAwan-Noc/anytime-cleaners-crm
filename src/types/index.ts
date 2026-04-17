@@ -41,6 +41,7 @@ export const JOB_STATUS_HEX: Record<JobStatus, string> = {
   cancelled: '#ef4444',
 };
 
+// UI type — 'every_x_days' is mapped to DB value 'custom_days' on save.
 export type ScheduleType =
   | 'weekly'
   | 'fortnightly'
@@ -54,8 +55,11 @@ export type ScheduleType =
 export interface RecurringSchedule {
   id: string;
   lead_id: string;
-  schedule_type: ScheduleType;
-  config: Record<string, unknown>;
+  schedule_type: ScheduleType | 'custom_days';
+  interval_days: number | null;
+  weekdays: unknown;
+  nth_weekday: unknown;
+  specific_dates: unknown;
   start_date: string | null;
   end_date: string | null;
   scheduled_time: string;
@@ -63,6 +67,7 @@ export interface RecurringSchedule {
   assigned_to: string | null;
   notes: string | null;
   is_active: boolean;
+  last_generated_date: string | null;
   created_at: string;
   updated_at: string;
 }
