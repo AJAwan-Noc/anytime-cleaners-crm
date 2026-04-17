@@ -13,7 +13,7 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import {
-  ArrowLeft, Bath, Bed, Loader2, MapPin, Pencil, Ruler, Trash2, User,
+  ArrowLeft, Bath, Bed, ExternalLink, Loader2, Map, MapPin, Pencil, Ruler, Trash2, User,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import PropertyFormDialog from '@/components/properties/PropertyFormDialog';
