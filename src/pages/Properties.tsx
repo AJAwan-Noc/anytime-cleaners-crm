@@ -111,7 +111,7 @@ export default function Properties() {
                     <TableRow
                       key={p.id}
                       className="cursor-pointer hover:bg-muted/50"
-                      onClick={() => navigate(`/leads/${p.lead_id}`)}
+                      onClick={() => navigate(`/properties/${p.id}`)}
                     >
                       <TableCell className="font-medium max-w-[240px] truncate">{p.address}</TableCell>
                       <TableCell className="hidden sm:table-cell">

@@ -12,6 +12,7 @@ import Leads from '@/pages/Leads';
 import LeadDetailPage from '@/pages/LeadDetailPage';
 import NewLeadPage from '@/pages/NewLeadPage';
 import Properties from '@/pages/Properties';
+import PropertyDetailPage from '@/pages/PropertyDetailPage';
 import Team from '@/pages/Team';
 import Invoices from '@/pages/Invoices';
 import InvoiceDetailPage from '@/pages/InvoiceDetailPage';
@@ -71,6 +72,14 @@ const App = () => (
                 element={
                   <ProtectedRoute allowedRoles={['owner', 'admin', 'manager']}>
                     <Properties />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/properties/:id"
+                element={
+                  <ProtectedRoute allowedRoles={['owner', 'admin', 'manager']}>
+                    <PropertyDetailPage />
                   </ProtectedRoute>
                 }
               />
