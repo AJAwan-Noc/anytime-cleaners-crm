@@ -412,13 +412,6 @@ function PropertyRow({ label, value, mono }: { label: string; value: string; mon
     </div>
   );
 }
-  return (
-    <div className="flex justify-between gap-4">
-      <span className="text-muted-foreground">{label}</span>
-      <span className="text-right font-medium">{value}</span>
-    </div>
-  );
-}
 
 function CreateJobDialog({ open, onClose, onCreated }: { open: boolean; onClose: () => void; onCreated: () => void }) {
   const { teamMember } = useAuth();
