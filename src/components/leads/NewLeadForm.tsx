@@ -12,6 +12,8 @@ import {
 } from '@/components/ui/select';
 import { toast } from 'sonner';
 import { Loader2, ArrowLeft } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
+import { logActivity } from '@/lib/activityLog';
 
 const SOURCES: LeadSource[] = ['website', 'facebook', 'instagram', 'referral', 'google', 'manual', 'other'];
 const SERVICE_TYPES = ['Regular Cleaning', 'Deep Clean', 'Move-In-Out', 'Commercial', 'Window Cleaning', 'Other'];
@@ -28,6 +30,7 @@ interface FormState {
 
 export default function NewLeadForm() {
   const navigate = useNavigate();
+  const { teamMember } = useAuth();
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState<FormState>({
     full_name: '',
@@ -62,6 +65,13 @@ export default function NewLeadForm() {
         body: JSON.stringify(form),
       });
       if (!res.ok) throw new Error();
+      await logActivity({
+        event_type: 'lead_created',
+        actor_id: teamMember?.id,
+        actor_name: teamMember?.name,
+        entity_type: 'lead',
+        description: `Created lead ${form.full_name}`,
+      });
       toast.success('Lead created successfully');
       navigate('/leads');
     } catch {
