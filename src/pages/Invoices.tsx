@@ -83,9 +83,9 @@ export default function Invoices() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-bold">Invoices</h1>
-        <Button onClick={() => navigate('/invoices/new')}>
+        <Button onClick={() => navigate('/invoices/new')} size="sm" className="sm:size-default">
           <Plus className="mr-1 h-4 w-4" /> Create Invoice
         </Button>
       </div>
@@ -155,71 +155,73 @@ export default function Invoices() {
           <p>No invoices found.</p>
         </div>
       ) : (
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Invoice #</TableHead>
-              <TableHead>Lead Name</TableHead>
-              <TableHead>Service Date</TableHead>
-              <TableHead className="text-right">Total</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="w-[60px]" />
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filtered.map(inv => (
-              <TableRow
-                key={inv.id}
-                className="cursor-pointer"
-                onClick={() => navigate(`/invoices/${inv.id}`)}
-              >
-                <TableCell className="font-medium">{inv.invoice_number}</TableCell>
-                <TableCell>{inv.lead?.full_name ?? '—'}</TableCell>
-                <TableCell>
-                  {inv.service_date
-                    ? format(parseISO(inv.service_date), 'dd/MM/yyyy')
-                    : '—'}
-                </TableCell>
-                <TableCell className="text-right">{fmtAUD(inv.total || 0)}</TableCell>
-                <TableCell>
-                  {inv.status === 'paid' && inv.paid_at ? (
-                    <TooltipProvider delayDuration={150}>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <div className="inline-flex flex-col items-start gap-0.5">
-                            <Badge className={INVOICE_STATUS_COLORS[inv.status as InvoiceStatus]}>
-                              Paid
-                            </Badge>
-                            <span className="text-[11px] text-muted-foreground">
-                              {inv.payment_method ?? '—'} · {format(parseISO(inv.paid_at), 'dd/MM/yyyy')}
-                            </span>
-                          </div>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          Paid via {inv.payment_method ?? '—'} on {format(parseISO(inv.paid_at), 'dd/MM/yyyy')}
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                  ) : (
-                    <Badge className={INVOICE_STATUS_COLORS[inv.status as InvoiceStatus]}>
-                      {inv.status.charAt(0).toUpperCase() + inv.status.slice(1)}
-                    </Badge>
-                  )}
-                </TableCell>
-                <TableCell>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8"
-                    onClick={e => { e.stopPropagation(); setDeleteTarget(inv); }}
-                  >
-                    <Trash2 className="h-4 w-4 text-destructive" />
-                  </Button>
-                </TableCell>
+        <div className="rounded-lg border bg-card overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Invoice #</TableHead>
+                <TableHead>Lead Name</TableHead>
+                <TableHead className="hidden sm:table-cell">Service Date</TableHead>
+                <TableHead className="text-right">Total</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead className="w-[60px]" />
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+            </TableHeader>
+            <TableBody>
+              {filtered.map(inv => (
+                <TableRow
+                  key={inv.id}
+                  className="cursor-pointer"
+                  onClick={() => navigate(`/invoices/${inv.id}`)}
+                >
+                  <TableCell className="font-medium whitespace-nowrap">{inv.invoice_number}</TableCell>
+                  <TableCell className="max-w-[160px] truncate">{inv.lead?.full_name ?? '—'}</TableCell>
+                  <TableCell className="hidden sm:table-cell whitespace-nowrap">
+                    {inv.service_date
+                      ? format(parseISO(inv.service_date), 'dd/MM/yyyy')
+                      : '—'}
+                  </TableCell>
+                  <TableCell className="text-right whitespace-nowrap">{fmtAUD(inv.total || 0)}</TableCell>
+                  <TableCell>
+                    {inv.status === 'paid' && inv.paid_at ? (
+                      <TooltipProvider delayDuration={150}>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <div className="inline-flex flex-col items-start gap-0.5">
+                              <Badge className={INVOICE_STATUS_COLORS[inv.status as InvoiceStatus]}>
+                                Paid
+                              </Badge>
+                              <span className="text-[11px] text-muted-foreground hidden sm:inline">
+                                {inv.payment_method ?? '—'} · {format(parseISO(inv.paid_at), 'dd/MM/yyyy')}
+                              </span>
+                            </div>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            Paid via {inv.payment_method ?? '—'} on {format(parseISO(inv.paid_at), 'dd/MM/yyyy')}
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    ) : (
+                      <Badge className={INVOICE_STATUS_COLORS[inv.status as InvoiceStatus]}>
+                        {inv.status.charAt(0).toUpperCase() + inv.status.slice(1)}
+                      </Badge>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={e => { e.stopPropagation(); setDeleteTarget(inv); }}
+                    >
+                      <Trash2 className="h-4 w-4 text-destructive" />
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
       )}
 
       {/* Delete confirmation */}
