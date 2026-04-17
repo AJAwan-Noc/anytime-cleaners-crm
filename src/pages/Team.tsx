@@ -555,6 +555,8 @@ export default function Team() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <MemberStatsDialog member={statsTarget} onClose={() => setStatsTarget(null)} />
     </div>
   );
 }
