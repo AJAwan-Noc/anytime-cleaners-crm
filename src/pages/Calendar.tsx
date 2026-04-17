@@ -93,14 +93,18 @@ export default function CalendarPage() {
   });
 
   const updateJobStatus = useMutation({
-    mutationFn: async ({ jobId, status, endpoint, eventLabel }: { jobId: string; status: JobStatus; endpoint: string; eventLabel: 'job_started' | 'job_completed' }) => {
-      const { error } = await supabase.from('jobs').update({ status, updated_at: new Date().toISOString() }).eq('id', jobId);
+    mutationFn: async ({ jobId, status, endpoint, eventLabel }: { jobId: string; status: JobStatus; endpoint: string; eventLabel: 'job_started' | 'job_completed'; successMsg: string }) => {
+      const updates: Record<string, unknown> = { status, updated_at: new Date().toISOString() };
+      if (status === 'in_progress') updates.started_at = new Date().toISOString();
+      if (status === 'completed') updates.completed_at = new Date().toISOString();
+      const { error } = await supabase.from('jobs').update(updates).eq('id', jobId);
       if (error) throw error;
+      console.log(`[calendar] POST /${endpoint}`, { job_id: jobId });
       await fetch(`${N8N_BASE_URL}/${endpoint}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ job_id: jobId }),
-      }).catch(() => null);
+      }).catch((e) => console.error(`n8n /${endpoint} failed`, e));
       await logActivity({
         event_type: eventLabel,
         actor_id: teamMember?.id,
@@ -110,8 +114,8 @@ export default function CalendarPage() {
         description: `${teamMember?.name ?? 'Cleaner'} ${eventLabel === 'job_started' ? 'started' : 'completed'} a job`,
       });
     },
-    onSuccess: () => {
-      toast.success('Job updated');
+    onSuccess: (_d, vars) => {
+      toast.success(vars.successMsg);
       qc.invalidateQueries({ queryKey: ['jobs'] });
       setSelectedJob(null);
       setConfirmAction(null);
@@ -210,10 +214,14 @@ export default function CalendarPage() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>
-              {confirmAction === 'start' ? 'Start this job?' : 'Mark this job complete?'}
+              {confirmAction === 'start'
+                ? `Start cleaning for ${selectedJob?.lead?.full_name ?? 'this lead'}?`
+                : `Mark job complete for ${selectedJob?.lead?.full_name ?? 'this lead'}?`}
             </AlertDialogTitle>
             <AlertDialogDescription>
-              This will notify the team and update the job status.
+              {confirmAction === 'start'
+                ? 'This will notify the team.'
+                : 'This will notify the team and client.'}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -222,9 +230,9 @@ export default function CalendarPage() {
               onClick={() => {
                 if (!selectedJob || !confirmAction) return;
                 if (confirmAction === 'start') {
-                  updateJobStatus.mutate({ jobId: selectedJob.id, status: 'in_progress', endpoint: 'job-started', eventLabel: 'job_started' });
+                  updateJobStatus.mutate({ jobId: selectedJob.id, status: 'in_progress', endpoint: 'job-started', eventLabel: 'job_started', successMsg: 'Job started — notifications sent' });
                 } else {
-                  updateJobStatus.mutate({ jobId: selectedJob.id, status: 'completed', endpoint: 'job-completed', eventLabel: 'job_completed' });
+                  updateJobStatus.mutate({ jobId: selectedJob.id, status: 'completed', endpoint: 'job-completed', eventLabel: 'job_completed', successMsg: 'Job completed — notifications sent' });
                 }
               }}
             >
