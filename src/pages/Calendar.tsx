@@ -423,7 +423,6 @@ function CreateJobDialog({ open, onClose, onCreated }: { open: boolean; onClose:
     estimated_duration_hours: 2,
     notes: '',
     is_recurring: false,
-    service_type: '',
   });
   const [search, setSearch] = useState('');
 
