@@ -399,18 +399,18 @@ function JobDetailDialog({
 
 function Row({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex justify-between gap-4">
-      <span className="text-muted-foreground">{label}</span>
-      <span className="text-right font-medium">{value}</span>
+    <div className="flex justify-between gap-3 items-start">
+      <span className="text-muted-foreground shrink-0">{label}</span>
+      <span className="text-right font-medium break-words min-w-0">{value}</span>
     </div>
   );
 }
 
 function PropertyRow({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
   return (
-    <div className="flex justify-between gap-4">
-      <span className="text-xs text-muted-foreground">{label}</span>
-      <span className={`text-right font-medium ${mono ? 'font-mono text-base' : 'text-sm'}`}>{value}</span>
+    <div className="flex justify-between gap-3 items-start">
+      <span className="text-xs text-muted-foreground shrink-0">{label}</span>
+      <span className={`text-right font-medium break-words min-w-0 ${mono ? 'font-mono text-base' : 'text-sm'}`}>{value}</span>
     </div>
   );
 }
