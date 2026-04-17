@@ -61,6 +61,7 @@ export interface RecurringSchedule {
   weekdays: unknown;
   nth_weekday: unknown;
   specific_dates: unknown;
+  day_schedules: DaySchedule[] | null;
   start_date: string | null;
   end_date: string | null;
   scheduled_time: string;
@@ -97,6 +98,11 @@ export type UpdateType = 'Note' | 'Call' | 'Email' | 'SMS' | 'Stage Change' | 'S
 
 export type PropertyType = 'residential' | 'commercial' | 'industrial' | 'other';
 
+export interface CustomField {
+  name: string;
+  value: string;
+}
+
 export interface Property {
   id: string;
   lead_id: string;
@@ -111,11 +117,30 @@ export interface Property {
   preferred_products: string | null;
   notes: string | null;
   map_url: string | null;
+  // type-specific
+  floor_level: string | null;
+  business_name: string | null;
+  hazard_notes: string | null;
+  // dynamic
+  custom_fields: CustomField[];
   is_active: boolean;
   created_at: string;
   updated_at: string;
   // joined
   lead?: Pick<Lead, 'id' | 'full_name'>;
+}
+
+export interface ServiceType {
+  id: string;
+  name: string;
+  is_active: boolean;
+  sort_order: number;
+  created_at: string;
+}
+
+export interface DaySchedule {
+  day: string;
+  time: string;
 }
 
 export const PROPERTY_TYPE_LABELS: Record<PropertyType, string> = {
@@ -132,12 +157,15 @@ export const PROPERTY_TYPE_COLORS: Record<PropertyType, string> = {
   other: 'bg-gray-100 text-gray-800',
 };
 
+export type CleanerType = 'residential' | 'commercial' | 'specialist' | 'general';
+
 export interface TeamMember {
   id: string;
   name: string;
   email: string;
   phone: string | null;
   role: Role;
+  cleaner_type?: CleanerType | null;
   is_active: boolean;
   user_id: string;
   created_at: string;
