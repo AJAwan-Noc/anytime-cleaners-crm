@@ -15,7 +15,6 @@ import { Loader2, Save, Trash2, Plus, Check } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import ServiceTypesSection from '@/components/admin/ServiceTypesSection';
-import { useAuth } from '@/contexts/AuthContext';
 
 // ── helpers ──
 function configMap(rows: AdminConfig[]): Record<string, string> {
