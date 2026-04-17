@@ -43,7 +43,7 @@ export default function CalendarPage() {
     queryFn: async () => {
       let q = supabase
         .from('jobs')
-        .select('*, lead:leads(id, full_name, address, email, phone), assigned_member:team_members!jobs_assigned_to_fkey(id, name)')
+        .select('*, lead:leads(id, full_name, address, email, phone, service_type), assigned_member:team_members!jobs_assigned_to_fkey(id, name)')
         .order('scheduled_date', { ascending: true });
 
       if (isCleaner && teamMember) {
@@ -83,7 +83,7 @@ export default function CalendarPage() {
     const end = new Date(start.getTime() + (j.estimated_duration_hours ?? 1) * 3600 * 1000);
     return {
       id: j.id,
-      title: `${j.lead?.full_name ?? 'Job'} — ${j.service_type ?? ''}`,
+      title: `${j.lead?.full_name ?? 'Job'} — ${j.lead?.service_type ?? ''}`,
       start: start.toISOString(),
       end: end.toISOString(),
       backgroundColor: JOB_STATUS_HEX[j.status],
