@@ -181,11 +181,22 @@ export default function PropertyDetailPage() {
                 value={property.square_metres != null ? `${property.square_metres} m²` : null}
               />
             </div>
+            {property.business_name && <DetailRow label="Business Name" value={property.business_name} />}
+            {property.floor_level && <DetailRow label="Floor Level" value={property.floor_level} />}
+            {property.hazard_notes && <DetailRow label="Hazard Notes" value={property.hazard_notes} multiline />}
             <DetailRow label="Access Code" value={property.access_code} />
             <DetailRow label="Parking Notes" value={property.parking_notes} multiline />
             <DetailRow label="Special Instructions" value={property.special_instructions} multiline />
             <DetailRow label="Preferred Products" value={property.preferred_products} />
             <DetailRow label="Notes" value={property.notes} multiline />
+            {Array.isArray(property.custom_fields) && property.custom_fields.length > 0 && (
+              <div className="pt-2 border-t space-y-2">
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Custom Fields</p>
+                {property.custom_fields.map((f, i) => (
+                  <DetailRow key={i} label={f.name} value={f.value} />
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
 

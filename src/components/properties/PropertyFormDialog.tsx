@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
-import { Property, PropertyType, PROPERTY_TYPE_LABELS } from '@/types';
+import { Property, PropertyType, PROPERTY_TYPE_LABELS, CustomField } from '@/types';
 import {
   Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog';
@@ -19,7 +19,7 @@ import {
   Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList,
 } from '@/components/ui/command';
 import { cn } from '@/lib/utils';
-import { Check, ChevronsUpDown, Loader2 } from 'lucide-react';
+import { Check, ChevronsUpDown, Loader2, Plus, X } from 'lucide-react';
 import { toast } from 'sonner';
 
 const TYPES: PropertyType[] = ['residential', 'commercial', 'industrial', 'other'];
@@ -46,6 +46,10 @@ type FormState = {
   preferred_products: string;
   notes: string;
   map_url: string;
+  floor_level: string;
+  business_name: string;
+  hazard_notes: string;
+  custom_fields: CustomField[];
 };
 
 const empty = (leadId: string, defaultAddress?: string | null): FormState => ({
@@ -61,6 +65,10 @@ const empty = (leadId: string, defaultAddress?: string | null): FormState => ({
   preferred_products: '',
   notes: '',
   map_url: '',
+  floor_level: '',
+  business_name: '',
+  hazard_notes: '',
+  custom_fields: [],
 });
 
 export default function PropertyFormDialog({
@@ -71,7 +79,6 @@ export default function PropertyFormDialog({
   const [form, setForm] = useState<FormState>(empty(leadId ?? '', defaultAddress));
   const [leadPickerOpen, setLeadPickerOpen] = useState(false);
 
-  // Only fetch leads when picker is needed
   const { data: leads = [] } = useQuery({
     queryKey: ['leads-picker'],
     queryFn: async () => {
@@ -105,6 +112,10 @@ export default function PropertyFormDialog({
         preferred_products: property.preferred_products ?? '',
         notes: property.notes ?? '',
         map_url: property.map_url ?? '',
+        floor_level: property.floor_level ?? '',
+        business_name: property.business_name ?? '',
+        hazard_notes: property.hazard_notes ?? '',
+        custom_fields: Array.isArray(property.custom_fields) ? property.custom_fields : [],
       });
     } else if (open) {
       setForm(empty(leadId ?? '', defaultAddress));
@@ -114,21 +125,37 @@ export default function PropertyFormDialog({
   const set = <K extends keyof FormState>(k: K, v: FormState[K]) =>
     setForm((p) => ({ ...p, [k]: v }));
 
+  const setCustom = (idx: number, key: 'name' | 'value', val: string) => {
+    setForm((p) => ({
+      ...p,
+      custom_fields: p.custom_fields.map((f, i) => (i === idx ? { ...f, [key]: val } : f)),
+    }));
+  };
+  const addCustom = () => setForm((p) => ({ ...p, custom_fields: [...p.custom_fields, { name: '', value: '' }] }));
+  const removeCustom = (idx: number) =>
+    setForm((p) => ({ ...p, custom_fields: p.custom_fields.filter((_, i) => i !== idx) }));
+
   const saveMutation = useMutation({
     mutationFn: async () => {
+      const t = form.property_type;
+      // Build payload with type-specific fields nullified when not relevant.
       const payload = {
         lead_id: form.lead_id,
         address: form.address.trim(),
-        property_type: form.property_type,
-        bedrooms: form.bedrooms ? Number(form.bedrooms) : null,
-        bathrooms: form.bathrooms ? Number(form.bathrooms) : null,
+        property_type: t,
+        bedrooms: t === 'residential' && form.bedrooms ? Number(form.bedrooms) : null,
+        bathrooms: t === 'residential' && form.bathrooms ? Number(form.bathrooms) : null,
         square_metres: form.square_metres ? Number(form.square_metres) : null,
         access_code: form.access_code.trim() || null,
         parking_notes: form.parking_notes.trim() || null,
         special_instructions: form.special_instructions.trim() || null,
-        preferred_products: form.preferred_products.trim() || null,
+        preferred_products: t === 'residential' && form.preferred_products.trim() ? form.preferred_products.trim() : null,
         notes: form.notes.trim() || null,
         map_url: form.map_url.trim() || null,
+        floor_level: t === 'commercial' && form.floor_level.trim() ? form.floor_level.trim() : null,
+        business_name: t === 'commercial' && form.business_name.trim() ? form.business_name.trim() : null,
+        hazard_notes: t === 'industrial' && form.hazard_notes.trim() ? form.hazard_notes.trim() : null,
+        custom_fields: form.custom_fields.filter((f) => f.name.trim() && f.value.trim()),
       };
       if (property) {
         const { error } = await supabase.from('properties').update(payload).eq('id', property.id);
@@ -140,10 +167,9 @@ export default function PropertyFormDialog({
     },
     onSuccess: () => {
       toast.success(property ? 'Property updated' : 'Property added');
-      if (form.lead_id) {
-        qc.invalidateQueries({ queryKey: ['lead-properties', form.lead_id] });
-      }
+      if (form.lead_id) qc.invalidateQueries({ queryKey: ['lead-properties', form.lead_id] });
       qc.invalidateQueries({ queryKey: ['properties-all'] });
+      qc.invalidateQueries({ queryKey: ['property', property?.id] });
       onOpenChange(false);
     },
     onError: (e: Error) => toast.error(`Failed to save: ${e.message}`),
@@ -151,16 +177,20 @@ export default function PropertyFormDialog({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.lead_id) {
-      toast.error('Please select a lead');
-      return;
-    }
-    if (!form.address.trim()) {
-      toast.error('Address is required');
-      return;
-    }
+    if (!form.lead_id) { toast.error('Please select a lead'); return; }
+    if (!form.address.trim()) { toast.error('Address is required'); return; }
     saveMutation.mutate();
   };
+
+  const t = form.property_type;
+  const showResidential = t === 'residential' || t === 'other';
+  const showCommercialOnly = t === 'commercial';
+  const showIndustrialOnly = t === 'industrial';
+  const showShared = t !== 'other'; // shared block (access/parking/instructions) - always for non-other; for "other" we show all basic fields anyway
+  const showAccessParkingInstr = true; // residential/commercial/industrial/other all use these
+  const showSquare = true;
+  const showPreferred = t === 'residential' || t === 'other';
+  const showBedBath = t === 'residential' || t === 'other';
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -178,10 +208,7 @@ export default function PropertyFormDialog({
                     type="button"
                     variant="outline"
                     role="combobox"
-                    className={cn(
-                      'w-full justify-between font-normal',
-                      !selectedLead && 'text-muted-foreground',
-                    )}
+                    className={cn('w-full justify-between font-normal', !selectedLead && 'text-muted-foreground')}
                   >
                     {selectedLead ? selectedLead.full_name : 'Select a lead…'}
                     <ChevronsUpDown className="h-4 w-4 opacity-50" />
@@ -199,23 +226,14 @@ export default function PropertyFormDialog({
                             value={`${l.full_name} ${l.address ?? ''}`}
                             onSelect={() => {
                               set('lead_id', l.id);
-                              if (!form.address.trim() && l.address) {
-                                set('address', l.address);
-                              }
+                              if (!form.address.trim() && l.address) set('address', l.address);
                               setLeadPickerOpen(false);
                             }}
                           >
-                            <Check
-                              className={cn(
-                                'mr-2 h-4 w-4',
-                                form.lead_id === l.id ? 'opacity-100' : 'opacity-0',
-                              )}
-                            />
+                            <Check className={cn('mr-2 h-4 w-4', form.lead_id === l.id ? 'opacity-100' : 'opacity-0')} />
                             <div className="flex flex-col">
                               <span>{l.full_name}</span>
-                              {l.address && (
-                                <span className="text-xs text-muted-foreground">{l.address}</span>
-                              )}
+                              {l.address && <span className="text-xs text-muted-foreground">{l.address}</span>}
                             </div>
                           </CommandItem>
                         ))}
@@ -238,61 +256,116 @@ export default function PropertyFormDialog({
               <Select value={form.property_type} onValueChange={(v) => set('property_type', v as PropertyType)}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  {TYPES.map((t) => <SelectItem key={t} value={t}>{PROPERTY_TYPE_LABELS[t]}</SelectItem>)}
+                  {TYPES.map((tt) => <SelectItem key={tt} value={tt}>{PROPERTY_TYPE_LABELS[tt]}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-1.5">
-              <Label>Square Metres</Label>
-              <Input type="number" min="0" value={form.square_metres} onChange={(e) => set('square_metres', e.target.value)} />
-            </div>
+            {showSquare && (
+              <div className="space-y-1.5">
+                <Label>Square Metres</Label>
+                <Input type="number" min="0" value={form.square_metres} onChange={(e) => set('square_metres', e.target.value)} />
+              </div>
+            )}
           </div>
 
           <div className="space-y-1.5">
-            <Label>Map Link <span className="text-muted-foreground font-normal">(Google Maps / Apple Maps URL)</span></Label>
+            <Label>Map Link <span className="text-muted-foreground font-normal">(Google / Apple Maps URL)</span></Label>
             <Input
-              type="url"
-              inputMode="url"
+              type="url" inputMode="url"
               value={form.map_url}
               onChange={(e) => set('map_url', e.target.value)}
               placeholder="https://maps.google.com/?q=..."
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-1.5">
-              <Label>Bedrooms</Label>
-              <Input type="number" min="0" value={form.bedrooms} onChange={(e) => set('bedrooms', e.target.value)} />
+          {/* Commercial-only fields */}
+          {showCommercialOnly && (
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label>Business Name</Label>
+                <Input value={form.business_name} onChange={(e) => set('business_name', e.target.value)} />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Floor Level</Label>
+                <Input value={form.floor_level} onChange={(e) => set('floor_level', e.target.value)} placeholder="e.g. Level 3" />
+              </div>
             </div>
+          )}
+
+          {/* Industrial-only fields */}
+          {showIndustrialOnly && (
             <div className="space-y-1.5">
-              <Label>Bathrooms</Label>
-              <Input type="number" min="0" value={form.bathrooms} onChange={(e) => set('bathrooms', e.target.value)} />
+              <Label>Hazard Notes</Label>
+              <Textarea rows={2} value={form.hazard_notes} onChange={(e) => set('hazard_notes', e.target.value)} placeholder="Any safety hazards on site…" />
             </div>
-          </div>
+          )}
 
-          <div className="space-y-1.5">
-            <Label>Access Code</Label>
-            <Input value={form.access_code} onChange={(e) => set('access_code', e.target.value)} />
-          </div>
+          {/* Residential bed/bath */}
+          {showBedBath && (
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label>Bedrooms</Label>
+                <Input type="number" min="0" value={form.bedrooms} onChange={(e) => set('bedrooms', e.target.value)} />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Bathrooms</Label>
+                <Input type="number" min="0" value={form.bathrooms} onChange={(e) => set('bathrooms', e.target.value)} />
+              </div>
+            </div>
+          )}
 
-          <div className="space-y-1.5">
-            <Label>Parking Notes</Label>
-            <Textarea rows={2} value={form.parking_notes} onChange={(e) => set('parking_notes', e.target.value)} />
-          </div>
+          {showAccessParkingInstr && (
+            <>
+              <div className="space-y-1.5">
+                <Label>Access Code</Label>
+                <Input value={form.access_code} onChange={(e) => set('access_code', e.target.value)} />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Parking Notes</Label>
+                <Textarea rows={2} value={form.parking_notes} onChange={(e) => set('parking_notes', e.target.value)} />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Special Instructions</Label>
+                <Textarea rows={2} value={form.special_instructions} onChange={(e) => set('special_instructions', e.target.value)} />
+              </div>
+            </>
+          )}
 
-          <div className="space-y-1.5">
-            <Label>Special Instructions</Label>
-            <Textarea rows={2} value={form.special_instructions} onChange={(e) => set('special_instructions', e.target.value)} />
-          </div>
-
-          <div className="space-y-1.5">
-            <Label>Preferred Products</Label>
-            <Input value={form.preferred_products} onChange={(e) => set('preferred_products', e.target.value)} placeholder="e.g. Eco-friendly only" />
-          </div>
+          {showPreferred && (
+            <div className="space-y-1.5">
+              <Label>Preferred Products</Label>
+              <Input value={form.preferred_products} onChange={(e) => set('preferred_products', e.target.value)} placeholder="e.g. Eco-friendly only" />
+            </div>
+          )}
 
           <div className="space-y-1.5">
             <Label>Notes</Label>
             <Textarea rows={3} value={form.notes} onChange={(e) => set('notes', e.target.value)} />
+          </div>
+
+          {/* Custom Fields */}
+          <div className="space-y-2 border-t pt-3">
+            <div className="flex items-center justify-between">
+              <Label>Custom Fields</Label>
+              <Button type="button" size="sm" variant="outline" onClick={addCustom} className="gap-1">
+                <Plus className="h-3.5 w-3.5" /> Add Field
+              </Button>
+            </div>
+            {form.custom_fields.length === 0 ? (
+              <p className="text-xs text-muted-foreground">Add any extra info about the property (e.g. "Wifi password", "Pet name").</p>
+            ) : (
+              <div className="space-y-2">
+                {form.custom_fields.map((f, i) => (
+                  <div key={i} className="flex gap-2">
+                    <Input placeholder="Field name" value={f.name} onChange={(e) => setCustom(i, 'name', e.target.value)} className="flex-1" />
+                    <Input placeholder="Value" value={f.value} onChange={(e) => setCustom(i, 'value', e.target.value)} className="flex-1" />
+                    <Button type="button" size="icon" variant="ghost" onClick={() => removeCustom(i)} className="text-destructive hover:text-destructive shrink-0">
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           <DialogFooter>
