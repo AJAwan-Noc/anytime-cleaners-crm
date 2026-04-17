@@ -168,11 +168,22 @@ export default function LeadPropertiesPanel({ leadId, leadAddress }: Props) {
 
                 <CollapsibleContent>
                   <div className="px-3 pb-3 pt-0 space-y-2 text-sm border-t">
+                    {p.business_name && <DetailRow label="Business Name" value={p.business_name} />}
+                    {p.floor_level && <DetailRow label="Floor Level" value={p.floor_level} />}
+                    {p.hazard_notes && <DetailRow label="Hazard Notes" value={p.hazard_notes} />}
                     <DetailRow label="Access Code" value={p.access_code} />
                     <DetailRow label="Parking Notes" value={p.parking_notes} />
                     <DetailRow label="Special Instructions" value={p.special_instructions} />
                     <DetailRow label="Preferred Products" value={p.preferred_products} />
                     <DetailRow label="Notes" value={p.notes} />
+                    {Array.isArray(p.custom_fields) && p.custom_fields.length > 0 && (
+                      <div className="pt-2 border-t space-y-1.5">
+                        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Custom Fields</p>
+                        {p.custom_fields.map((f, i) => (
+                          <DetailRow key={i} label={f.name} value={f.value} />
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </CollapsibleContent>
               </Collapsible>

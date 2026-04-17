@@ -22,11 +22,11 @@ import { formatDistanceToNow, format } from 'date-fns';
 import LeadFeedbackPanel from '@/components/leads/LeadFeedbackPanel';
 import LeadPropertiesPanel from '@/components/properties/LeadPropertiesPanel';
 import RecurringSchedulePanel from '@/components/leads/RecurringSchedulePanel';
+import ServiceTypeCombobox from '@/components/leads/ServiceTypeCombobox';
 import { logActivity } from '@/lib/activityLog';
 
 const SOURCES: LeadSource[] = ['website', 'facebook', 'instagram', 'referral', 'google', 'manual', 'other'];
 const STAGES: LeadStage[] = ['new_lead', 'contacted', 'quote_sent', 'not_responding', 'booked', 'not_interested'];
-const SERVICE_TYPES = ['Regular Cleaning', 'Deep Clean', 'Move-In-Out', 'Commercial', 'Window Cleaning', 'Other'];
 const UPDATE_TYPES: UpdateType[] = ['Note', 'Call', 'Email', 'SMS', 'Stage Change', 'System'];
 
 export default function LeadDetail() {
@@ -237,12 +237,11 @@ export default function LeadDetail() {
 
               <div className="space-y-1.5">
                 <Label>Service Type</Label>
-                <Select value={form.service_type ?? ''} onValueChange={(v) => set('service_type', v)} disabled={isAgent}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {SERVICE_TYPES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
-                  </SelectContent>
-                </Select>
+                <ServiceTypeCombobox
+                  value={form.service_type ?? ''}
+                  onChange={(v) => set('service_type', v)}
+                  disabled={isAgent}
+                />
               </div>
 
               <div className="space-y-1.5">

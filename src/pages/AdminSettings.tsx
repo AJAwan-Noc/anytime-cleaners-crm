@@ -12,7 +12,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Loader2, Save, Trash2, Plus, Check } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
+import ServiceTypesSection from '@/components/admin/ServiceTypesSection';
 
 // ── helpers ──
 function configMap(rows: AdminConfig[]): Record<string, string> {
@@ -153,7 +155,7 @@ export default function AdminSettings() {
 
   // ── local state per section ──
   const [messaging, setMessaging] = useState({ welcome_sms_template: '', welcome_email_subject: '' });
-  const [company, setCompany] = useState({ company_name: '', tax_rate: '', invoice_prefix: '' });
+  const [company, setCompany] = useState({ tax_rate: '' });
   const [automation, setAutomation] = useState({ follow_up_days: '' });
 
   useEffect(() => {
@@ -162,11 +164,7 @@ export default function AdminSettings() {
         welcome_sms_template: cfg.welcome_sms_template ?? '',
         welcome_email_subject: cfg.welcome_email_subject ?? '',
       });
-      setCompany({
-        company_name: cfg.company_name ?? '',
-        tax_rate: cfg.tax_rate ?? '',
-        invoice_prefix: cfg.invoice_prefix ?? '',
-      });
+      setCompany({ tax_rate: cfg.tax_rate ?? '' });
       setAutomation({ follow_up_days: cfg.follow_up_days ?? '' });
     }
   }, [configRows]);
@@ -264,10 +262,10 @@ export default function AdminSettings() {
     <div className="space-y-6 p-4 md:p-6 max-w-3xl mx-auto">
       <h1 className="text-2xl font-bold">Admin Settings</h1>
 
-      {/* ── Messaging ── */}
+      {/* ── Default Message Templates ── */}
       <SettingsSection
-        title="Messaging"
-        description="Templates for automated welcome messages sent via n8n."
+        title="Default Message Templates"
+        description="These are the default subject lines and SMS templates used for automated messages. For full email template editing including layout, colors, and content, go to Email Templates in the sidebar."
         saving={savingSection === 'Messaging'}
         onSave={() => saveKeys(messaging, 'Messaging')}
       >
@@ -300,10 +298,13 @@ export default function AdminSettings() {
         </div>
       </SettingsSection>
 
+      {/* ── Service Types ── */}
+      <ServiceTypesSection />
+
       {/* ── Company ── */}
       <SettingsSection
         title="Company"
-        description="Company details used on invoices and communications."
+        description="Operational company settings used on invoices."
         saving={savingSection === 'Company'}
         onSave={() => {
           const rate = Number(company.tax_rate);
@@ -311,20 +312,9 @@ export default function AdminSettings() {
             toast.error('Tax rate must be between 0 and 100');
             return;
           }
-          if (company.invoice_prefix.length > 5) {
-            toast.error('Invoice prefix max 5 characters');
-            return;
-          }
           saveKeys(company, 'Company');
         }}
       >
-        <div className="space-y-1">
-          <Label>Company Name</Label>
-          <Input
-            value={company.company_name}
-            onChange={(e) => setCompany((p) => ({ ...p, company_name: e.target.value }))}
-          />
-        </div>
         <div className="space-y-1">
           <Label>Tax Rate</Label>
           <div className="flex items-center gap-2">
@@ -339,24 +329,15 @@ export default function AdminSettings() {
             <span className="text-sm text-muted-foreground">%</span>
           </div>
         </div>
-        <div className="space-y-1">
-          <Label>Invoice Prefix</Label>
-          <Input
-            maxLength={5}
-            value={company.invoice_prefix}
-            onChange={(e) => setCompany((p) => ({ ...p, invoice_prefix: e.target.value }))}
-            className="max-w-[120px]"
-          />
-          {company.invoice_prefix && (
-            <p className="text-xs text-muted-foreground">Example: {company.invoice_prefix}-0001</p>
-          )}
-        </div>
+        <p className="text-xs text-muted-foreground">
+          Company name and invoice prefix are configured at setup. Contact support to change these.
+        </p>
       </SettingsSection>
 
-      {/* ── Automation ── */}
+      {/* ── Automation Rules ── */}
       <SettingsSection
-        title="Automation"
-        description="Timing rules for automated workflows."
+        title="Automation Rules"
+        description="These rules control how the system behaves automatically. Follow-Up Days: number of days after last contact before a lead is marked as Not Responding and a follow-up email is sent. All automated workflows run daily at 9AM Sydney time."
         saving={savingSection === 'Automation'}
         onSave={() => {
           const d = Number(automation.follow_up_days);
@@ -368,7 +349,10 @@ export default function AdminSettings() {
         }}
       >
         <div className="space-y-1">
-          <Label>Days before auto follow-up</Label>
+          <div className="flex items-center gap-2">
+            <Label>Days before auto follow-up</Label>
+            <Badge className="bg-green-100 text-green-800" variant="secondary">Active</Badge>
+          </div>
           <Input
             type="number"
             min={1}

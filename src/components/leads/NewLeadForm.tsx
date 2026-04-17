@@ -14,9 +14,9 @@ import { toast } from 'sonner';
 import { Loader2, ArrowLeft } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { logActivity } from '@/lib/activityLog';
+import ServiceTypeCombobox from '@/components/leads/ServiceTypeCombobox';
 
 const SOURCES: LeadSource[] = ['website', 'facebook', 'instagram', 'referral', 'google', 'manual', 'other'];
-const SERVICE_TYPES = ['Regular Cleaning', 'Deep Clean', 'Move-In-Out', 'Commercial', 'Window Cleaning', 'Other'];
 
 interface FormState {
   full_name: string;
@@ -119,14 +119,10 @@ export default function NewLeadForm() {
               </div>
               <div className="space-y-1.5">
                 <Label>Service Type</Label>
-                <Select value={form.service_type} onValueChange={(v) => set('service_type', v)}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {SERVICE_TYPES.map((s) => (
-                      <SelectItem key={s} value={s}>{s}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <ServiceTypeCombobox
+                  value={form.service_type}
+                  onChange={(v) => set('service_type', v)}
+                />
               </div>
               <div className="space-y-1.5">
                 <Label>Address</Label>

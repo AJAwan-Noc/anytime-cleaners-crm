@@ -2,10 +2,11 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase, N8N_BASE_URL } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
-import { TeamMember, Role } from '@/types';
+import { TeamMember, Role, CleanerType } from '@/types';
 import { logActivity } from '@/lib/activityLog';
 import { toast } from 'sonner';
-import { Loader2, Plus, Pencil, Trash2, Users, KeyRound } from 'lucide-react';
+import { Loader2, Plus, Pencil, Trash2, Users, KeyRound, BarChart3 } from 'lucide-react';
+import MemberStatsDialog from '@/components/team/MemberStatsDialog';
 import {
   Table, TableHeader, TableBody, TableRow, TableHead, TableCell,
 } from '@/components/ui/table';
@@ -42,9 +43,12 @@ interface MemberForm {
   email: string;
   phone: string;
   role: Role;
+  cleaner_type: CleanerType | '';
 }
 
-const emptyForm: MemberForm = { name: '', email: '', phone: '', role: 'agent' };
+const emptyForm: MemberForm = { name: '', email: '', phone: '', role: 'agent', cleaner_type: '' };
+
+const CLEANER_TYPES: CleanerType[] = ['residential', 'commercial', 'specialist', 'general'];
 
 /** Which roles can the current user create/edit? */
 function getAllowedRoles(currentRole: Role | null): Role[] {
@@ -75,6 +79,7 @@ export default function Team() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<MemberForm>(emptyForm);
   const [submitting, setSubmitting] = useState(false);
+  const [statsTarget, setStatsTarget] = useState<TeamMember | null>(null);
 
   const [deleteTarget, setDeleteTarget] = useState<TeamMember | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -145,7 +150,7 @@ export default function Team() {
 
   const openEdit = (m: TeamMember) => {
     setEditingId(m.id);
-    setForm({ name: m.name, email: m.email, phone: m.phone || '', role: m.role });
+    setForm({ name: m.name, email: m.email, phone: m.phone || '', role: m.role, cleaner_type: (m.cleaner_type as CleanerType) || '' });
     setModalOpen(true);
   };
 
@@ -156,10 +161,11 @@ export default function Team() {
     }
     setSubmitting(true);
     try {
+      const cleaner_type = form.role === 'cleaner' ? (form.cleaner_type || null) : null;
       if (editingId) {
         const { error } = await supabase
           .from('team_members')
-          .update({ name: form.name, email: form.email, phone: form.phone || null, role: form.role })
+          .update({ name: form.name, email: form.email, phone: form.phone || null, role: form.role, cleaner_type })
           .eq('id', editingId);
         if (error) throw error;
         toast.success('Member updated');
@@ -168,7 +174,7 @@ export default function Team() {
         const res = await fetch(`${N8N_BASE_URL}/create-team-member`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name: form.name, email: form.email, phone: form.phone || null, role: form.role, password: 'Welcome123!' }),
+          body: JSON.stringify({ name: form.name, email: form.email, phone: form.phone || null, role: form.role, cleaner_type, password: 'Welcome123!' }),
         });
         const data = await res.json();
         if (!res.ok || data.success === false) {
@@ -184,6 +190,7 @@ export default function Team() {
         });
       }
       queryClient.invalidateQueries({ queryKey: ['team-members'] });
+      queryClient.invalidateQueries({ queryKey: ['cleaner-performance'] });
       setModalOpen(false);
     } catch (err: any) {
       toast.error(err.message || 'Something went wrong');
@@ -282,7 +289,7 @@ export default function Team() {
   }));
 
   const allowedRoles = getAllowedRoles(currentRole);
-  const colCount = canWrite ? 9 : 6;
+  const colCount = canWrite ? 10 : 6;
 
   if (isLoading) {
     return (
@@ -320,6 +327,7 @@ export default function Team() {
               {canWrite && <TableHead />}
               {canWrite && <TableHead />}
               {canWrite && <TableHead />}
+              {canWrite && <TableHead />}
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -353,6 +361,13 @@ export default function Team() {
                     )}
                   </TableCell>
                   <TableCell className="hidden md:table-cell text-right">{leadCounts[m.id] || 0}</TableCell>
+                  {canWrite && (
+                    <TableCell>
+                      <Button variant="ghost" size="icon" onClick={() => setStatsTarget(m)} title="View Stats">
+                        <BarChart3 className="h-4 w-4" />
+                      </Button>
+                    </TableCell>
+                  )}
                   {canWrite && (
                     <TableCell>
                       {manageable && (
@@ -448,6 +463,22 @@ export default function Team() {
                 </SelectContent>
               </Select>
             </div>
+            {form.role === 'cleaner' && (
+              <div className="space-y-2">
+                <Label>Cleaner Type</Label>
+                <Select
+                  value={form.cleaner_type || ''}
+                  onValueChange={(v) => setForm({ ...form, cleaner_type: v as CleanerType })}
+                >
+                  <SelectTrigger><SelectValue placeholder="Select type" /></SelectTrigger>
+                  <SelectContent>
+                    {CLEANER_TYPES.map((c) => (
+                      <SelectItem key={c} value={c}>{c.charAt(0).toUpperCase() + c.slice(1)}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
           </div>
           <DialogFooter className="flex-col sm:flex-row gap-2">
             {editingId && (
@@ -524,6 +555,8 @@ export default function Team() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <MemberStatsDialog member={statsTarget} onClose={() => setStatsTarget(null)} />
     </div>
   );
 }
