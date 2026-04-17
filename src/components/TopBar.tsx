@@ -9,10 +9,15 @@ import { useLocation } from 'react-router-dom';
 
 const PAGE_TITLES: Record<string, string> = {
   '/': 'Dashboard',
+  '/calendar': 'Calendar',
+  '/pipeline': 'Pipeline',
   '/leads': 'Leads',
   '/leads/new': 'New Lead',
+  '/properties': 'Properties',
   '/team': 'Team',
   '/invoices': 'Invoices',
+  '/activity': 'Activity',
+  '/profile': 'Profile',
   '/admin': 'Admin Settings',
 };
 
@@ -38,42 +43,70 @@ export function TopBar() {
     refetchInterval: 30000,
   });
 
-  const roleBadgeColor =
+  const roleBadgeClass =
     role === 'owner'
-      ? 'bg-purple-100 text-purple-800'
+      ? 'bg-gradient-to-r from-accent to-primary text-primary-foreground border-0'
       : role === 'admin'
-        ? 'bg-primary text-primary-foreground'
+        ? 'bg-primary text-primary-foreground border-0'
         : role === 'manager'
-          ? 'bg-blue-100 text-blue-800'
-          : 'bg-gray-100 text-gray-800';
+          ? 'bg-accent/15 text-accent border-accent/30'
+          : role === 'cleaner'
+            ? 'bg-primary/15 text-primary border-primary/30'
+            : 'bg-muted text-muted-foreground';
+
+  const initials = teamMember?.name
+    ?.split(' ')
+    .map((n) => n[0])
+    .slice(0, 2)
+    .join('')
+    .toUpperCase() ?? '?';
 
   return (
-    <header className="h-14 border-b bg-card flex items-center justify-between gap-2 px-2 sm:px-4 shrink-0 min-w-0">
-      <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-        <SidebarTrigger className="text-muted-foreground shrink-0" />
-        <h1 className="text-base sm:text-lg font-semibold truncate">{pageTitle}</h1>
+    <header className="h-16 border-b border-border/60 glass flex items-center justify-between gap-2 px-3 sm:px-5 shrink-0 min-w-0 sticky top-0 z-30">
+      <div className="flex items-center gap-3 min-w-0">
+        <SidebarTrigger className="text-muted-foreground hover:text-primary transition-colors shrink-0" />
+        <div className="min-w-0">
+          <h1 className="text-base sm:text-lg font-bold truncate leading-tight">{pageTitle}</h1>
+          <p className="text-[11px] text-muted-foreground hidden sm:block leading-tight">
+            We clean it, we mean it
+          </p>
+        </div>
       </div>
 
-      <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-        <div className="relative">
-          <Bell className="h-5 w-5 text-muted-foreground" />
+      <div className="flex items-center gap-2 sm:gap-4 shrink-0">
+        <button className="relative p-2 rounded-lg hover:bg-muted transition-colors group">
+          <Bell className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors" />
           {notRespondingCount > 0 && (
-            <span className="absolute -top-1.5 -right-1.5 h-4 min-w-4 rounded-full bg-orange-500 text-[10px] font-bold text-white flex items-center justify-center px-1">
+            <span className="absolute top-0.5 right-0.5 h-4 min-w-4 rounded-full bg-gradient-to-br from-orange-500 to-red-500 text-[10px] font-bold text-white flex items-center justify-center px-1 shadow-md animate-pulse">
               {notRespondingCount}
             </span>
           )}
-        </div>
+        </button>
 
         {teamMember && (
-          <div className="flex items-center gap-2 text-sm min-w-0">
-            <span className="font-medium hidden md:inline truncate max-w-[160px]">{teamMember.name}</span>
-            <Badge className={`text-[10px] uppercase tracking-wider ${roleBadgeColor}`}>
-              {role}
-            </Badge>
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="relative shrink-0">
+              <div className="h-9 w-9 rounded-full bg-gradient-to-br from-accent to-primary flex items-center justify-center text-xs font-bold text-primary-foreground shadow-md">
+                {initials}
+              </div>
+              <span className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full bg-green-500 border-2 border-background" />
+            </div>
+            <div className="hidden md:flex flex-col leading-tight min-w-0">
+              <span className="text-sm font-semibold truncate max-w-[140px]">{teamMember.name}</span>
+              <Badge className={`text-[9px] uppercase tracking-wider px-1.5 py-0 h-4 w-fit ${roleBadgeClass}`}>
+                {role}
+              </Badge>
+            </div>
           </div>
         )}
 
-        <Button variant="ghost" size="icon" onClick={signOut} title="Sign out">
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={signOut}
+          title="Sign out"
+          className="hover:bg-destructive/10 hover:text-destructive transition-colors"
+        >
           <LogOut className="h-4 w-4" />
         </Button>
       </div>

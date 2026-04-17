@@ -4,59 +4,76 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 234 16% 18%;
+    /* Anytime Cleaners brand palette
+       Deep navy bg, lime green primary, electric blue accent */
+    --background: 220 30% 97%;
+    --foreground: 222 45% 11%;
 
     --card: 0 0% 100%;
-    --card-foreground: 234 16% 18%;
+    --card-foreground: 222 45% 11%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 234 16% 18%;
+    --popover-foreground: 222 45% 11%;
 
-    --primary: 239 84% 67%;
-    --primary-foreground: 0 0% 100%;
+    /* Lime green from logo */
+    --primary: 88 86% 55%;
+    --primary-foreground: 222 47% 11%;
+    --primary-glow: 88 95% 65%;
 
-    --secondary: 230 25% 95%;
-    --secondary-foreground: 234 16% 18%;
+    --secondary: 220 20% 94%;
+    --secondary-foreground: 222 45% 15%;
 
-    --muted: 230 25% 95%;
-    --muted-foreground: 230 10% 46%;
+    --muted: 220 20% 94%;
+    --muted-foreground: 222 15% 42%;
 
-    --accent: 230 25% 95%;
-    --accent-foreground: 234 16% 18%;
+    /* Electric blue from logo */
+    --accent: 199 95% 55%;
+    --accent-foreground: 0 0% 100%;
+    --accent-glow: 199 100% 70%;
 
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 230 20% 90%;
-    --input: 230 20% 90%;
-    --ring: 239 84% 67%;
+    --border: 220 20% 88%;
+    --input: 220 20% 90%;
+    --ring: 88 86% 55%;
 
-    --radius: 0.5rem;
+    --radius: 0.75rem;
 
-    --sidebar-background: 234 25% 14%;
-    --sidebar-foreground: 230 25% 85%;
-    --sidebar-primary: 239 84% 67%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 234 20% 20%;
-    --sidebar-accent-foreground: 0 0% 100%;
-    --sidebar-border: 234 20% 22%;
-    --sidebar-ring: 239 84% 67%;
+    /* Sidebar — deep navy from logo background */
+    --sidebar-background: 222 47% 9%;
+    --sidebar-foreground: 220 25% 80%;
+    --sidebar-primary: 88 86% 55%;
+    --sidebar-primary-foreground: 222 47% 11%;
+    --sidebar-accent: 222 40% 16%;
+    --sidebar-accent-foreground: 88 86% 60%;
+    --sidebar-border: 222 40% 18%;
+    --sidebar-ring: 88 86% 55%;
 
     /* Stage badge colors */
-    --stage-new: 217 91% 60%;
-    --stage-contacted: 45 93% 47%;
+    --stage-new: 199 95% 55%;
+    --stage-contacted: 45 93% 50%;
     --stage-not-responding: 27 96% 61%;
-    --stage-booked: 142 71% 45%;
+    --stage-booked: 88 86% 50%;
     --stage-not-interested: 0 84% 60%;
 
-    /* Success */
     --success: 142 71% 45%;
     --success-foreground: 0 0% 100%;
 
-    /* Warning */
     --warning: 45 93% 47%;
     --warning-foreground: 0 0% 100%;
+
+    /* Brand gradients & shadows */
+    --gradient-brand: linear-gradient(135deg, hsl(199 95% 55%) 0%, hsl(88 86% 55%) 100%);
+    --gradient-brand-soft: linear-gradient(135deg, hsl(199 95% 55% / 0.12) 0%, hsl(88 86% 55% / 0.12) 100%);
+    --gradient-navy: linear-gradient(160deg, hsl(222 47% 11%) 0%, hsl(220 50% 16%) 100%);
+    --gradient-glow: radial-gradient(circle at 30% 20%, hsl(199 95% 55% / 0.25), transparent 60%),
+                     radial-gradient(circle at 70% 80%, hsl(88 86% 55% / 0.20), transparent 60%);
+
+    --shadow-brand: 0 10px 40px -10px hsl(88 86% 50% / 0.35);
+    --shadow-accent: 0 10px 40px -10px hsl(199 95% 55% / 0.4);
+    --shadow-card: 0 1px 3px hsl(222 47% 11% / 0.04), 0 4px 20px -4px hsl(222 47% 11% / 0.06);
+    --shadow-elevated: 0 8px 30px -6px hsl(222 47% 11% / 0.12);
   }
 }
 
@@ -66,7 +83,89 @@
   }
 
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground antialiased;
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    font-feature-settings: "cv11", "ss01";
   }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply tracking-tight;
+  }
+}
+
+@layer utilities {
+  .bg-brand-gradient { background: var(--gradient-brand); }
+  .bg-brand-soft { background: var(--gradient-brand-soft); }
+  .bg-navy-gradient { background: var(--gradient-navy); }
+  .bg-glow { background: var(--gradient-glow); }
+  .shadow-brand { box-shadow: var(--shadow-brand); }
+  .shadow-accent-glow { box-shadow: var(--shadow-accent); }
+  .shadow-card { box-shadow: var(--shadow-card); }
+  .shadow-elevated { box-shadow: var(--shadow-elevated); }
+  .text-brand-gradient {
+    background: var(--gradient-brand);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  .hover-lift {
+    @apply transition-all duration-300;
+  }
+  .hover-lift:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-elevated);
+  }
+
+  .hover-glow {
+    @apply transition-all duration-300;
+  }
+  .hover-glow:hover {
+    box-shadow: 0 0 0 3px hsl(var(--primary) / 0.15), var(--shadow-card);
+  }
+
+  .animate-shimmer {
+    background: linear-gradient(110deg, transparent 40%, hsl(var(--primary) / 0.15) 50%, transparent 60%);
+    background-size: 200% 100%;
+    animation: shimmer 2s linear infinite;
+  }
+
+  .glass {
+    background: hsl(0 0% 100% / 0.7);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+}
+
+@keyframes shimmer {
+  to { background-position: -200% 0; }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-8px); }
+}
+
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 20px hsl(var(--primary) / 0.4); }
+  50% { box-shadow: 0 0 40px hsl(var(--primary) / 0.7); }
+}
+
+@keyframes blob {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(30px, -50px) scale(1.1); }
+  66% { transform: translate(-20px, 20px) scale(0.9); }
+}
+
+@keyframes gradient-shift {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+.animate-float { animation: float 3s ease-in-out infinite; }
+.animate-pulse-glow { animation: pulse-glow 2s ease-in-out infinite; }
+.animate-blob { animation: blob 8s ease-in-out infinite; }
+.animate-gradient {
+  background-size: 200% 200%;
+  animation: gradient-shift 6s ease infinite;
 }
