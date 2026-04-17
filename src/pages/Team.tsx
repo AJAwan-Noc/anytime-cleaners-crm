@@ -327,6 +327,7 @@ export default function Team() {
               {canWrite && <TableHead />}
               {canWrite && <TableHead />}
               {canWrite && <TableHead />}
+              {canWrite && <TableHead />}
             </TableRow>
           </TableHeader>
           <TableBody>
