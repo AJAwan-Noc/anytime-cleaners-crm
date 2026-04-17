@@ -5,7 +5,7 @@ import NewLeadForm from '@/components/leads/NewLeadForm';
 
 export default function Leads() {
   return (
-    <div className="p-6">
+    <div>
       <LeadsList />
     </div>
   );

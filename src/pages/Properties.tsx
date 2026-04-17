@@ -43,7 +43,7 @@ export default function Properties() {
   }, [properties, search, typeFilter]);
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold">Properties</h1>
         <p className="text-sm text-muted-foreground">All properties across all leads.</p>
