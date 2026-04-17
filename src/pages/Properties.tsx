@@ -81,44 +81,46 @@ export default function Properties() {
           ) : filtered.length === 0 ? (
             <p className="text-center text-muted-foreground py-8">No properties found.</p>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Address</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Lead</TableHead>
-                  <TableHead className="text-center">Bed</TableHead>
-                  <TableHead className="text-center">Bath</TableHead>
-                  <TableHead>Status</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filtered.map((p) => (
-                  <TableRow
-                    key={p.id}
-                    className="cursor-pointer hover:bg-muted/50"
-                    onClick={() => navigate(`/leads/${p.lead_id}`)}
-                  >
-                    <TableCell className="font-medium">{p.address}</TableCell>
-                    <TableCell>
-                      <Badge className={PROPERTY_TYPE_COLORS[p.property_type]} variant="secondary">
-                        {PROPERTY_TYPE_LABELS[p.property_type]}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>{p.lead?.full_name ?? '—'}</TableCell>
-                    <TableCell className="text-center">{p.bedrooms ?? '—'}</TableCell>
-                    <TableCell className="text-center">{p.bathrooms ?? '—'}</TableCell>
-                    <TableCell>
-                      {p.is_active ? (
-                        <Badge className="bg-green-100 text-green-800" variant="secondary">Active</Badge>
-                      ) : (
-                        <Badge variant="outline" className="text-muted-foreground">Inactive</Badge>
-                      )}
-                    </TableCell>
+            <div className="overflow-x-auto -mx-6 px-6">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Address</TableHead>
+                    <TableHead className="hidden sm:table-cell">Type</TableHead>
+                    <TableHead className="hidden md:table-cell">Lead</TableHead>
+                    <TableHead className="hidden lg:table-cell text-center">Bed</TableHead>
+                    <TableHead className="hidden lg:table-cell text-center">Bath</TableHead>
+                    <TableHead>Status</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {filtered.map((p) => (
+                    <TableRow
+                      key={p.id}
+                      className="cursor-pointer hover:bg-muted/50"
+                      onClick={() => navigate(`/leads/${p.lead_id}`)}
+                    >
+                      <TableCell className="font-medium max-w-[240px] truncate">{p.address}</TableCell>
+                      <TableCell className="hidden sm:table-cell">
+                        <Badge className={PROPERTY_TYPE_COLORS[p.property_type]} variant="secondary">
+                          {PROPERTY_TYPE_LABELS[p.property_type]}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="hidden md:table-cell">{p.lead?.full_name ?? '—'}</TableCell>
+                      <TableCell className="hidden lg:table-cell text-center">{p.bedrooms ?? '—'}</TableCell>
+                      <TableCell className="hidden lg:table-cell text-center">{p.bathrooms ?? '—'}</TableCell>
+                      <TableCell>
+                        {p.is_active ? (
+                          <Badge className="bg-green-100 text-green-800" variant="secondary">Active</Badge>
+                        ) : (
+                          <Badge variant="outline" className="text-muted-foreground">Inactive</Badge>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
           )}
         </CardContent>
       </Card>

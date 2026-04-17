@@ -119,30 +119,32 @@ export default function ActivityPage() {
           ) : rows.length === 0 ? (
             <p className="text-center py-12 text-sm text-muted-foreground">No activity found.</p>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Time</TableHead>
-                  <TableHead>Actor</TableHead>
-                  <TableHead>Event</TableHead>
-                  <TableHead>Entity</TableHead>
-                  <TableHead>Description</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {rows.map((r) => (
-                  <TableRow key={r.id}>
-                    <TableCell className="text-sm" title={format(new Date(r.created_at), 'PPpp')}>
-                      {formatDistanceToNow(new Date(r.created_at), { addSuffix: true })}
-                    </TableCell>
-                    <TableCell className="text-sm">{r.actor_name ?? '—'}</TableCell>
-                    <TableCell><Badge className={EVENT_COLOR(r.event_type)} variant="secondary">{r.event_type}</Badge></TableCell>
-                    <TableCell className="text-sm text-muted-foreground">{r.entity_type ?? '—'}</TableCell>
-                    <TableCell className="text-sm">{r.description ?? '—'}</TableCell>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Time</TableHead>
+                    <TableHead className="hidden md:table-cell">Actor</TableHead>
+                    <TableHead>Event</TableHead>
+                    <TableHead className="hidden lg:table-cell">Entity</TableHead>
+                    <TableHead className="hidden sm:table-cell">Description</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {rows.map((r) => (
+                    <TableRow key={r.id}>
+                      <TableCell className="text-sm whitespace-nowrap" title={format(new Date(r.created_at), 'PPpp')}>
+                        {formatDistanceToNow(new Date(r.created_at), { addSuffix: true })}
+                      </TableCell>
+                      <TableCell className="hidden md:table-cell text-sm max-w-[140px] truncate">{r.actor_name ?? '—'}</TableCell>
+                      <TableCell><Badge className={EVENT_COLOR(r.event_type)} variant="secondary">{r.event_type}</Badge></TableCell>
+                      <TableCell className="hidden lg:table-cell text-sm text-muted-foreground">{r.entity_type ?? '—'}</TableCell>
+                      <TableCell className="hidden sm:table-cell text-sm max-w-[280px] truncate">{r.description ?? '—'}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
           )}
         </CardContent>
       </Card>
