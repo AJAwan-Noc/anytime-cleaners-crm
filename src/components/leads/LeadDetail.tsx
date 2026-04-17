@@ -21,6 +21,8 @@ import { Loader2, ArrowLeft, Archive, FileText, BarChart3 } from 'lucide-react';
 import { formatDistanceToNow, format } from 'date-fns';
 import LeadFeedbackPanel from '@/components/leads/LeadFeedbackPanel';
 import LeadPropertiesPanel from '@/components/properties/LeadPropertiesPanel';
+import RecurringSchedulePanel from '@/components/leads/RecurringSchedulePanel';
+import { logActivity } from '@/lib/activityLog';
 
 const SOURCES: LeadSource[] = ['website', 'facebook', 'instagram', 'referral', 'google', 'manual', 'other'];
 const STAGES: LeadStage[] = ['new_lead', 'contacted', 'quote_sent', 'not_responding', 'booked', 'not_interested'];
@@ -411,6 +413,8 @@ export default function LeadDetail() {
             <LeadFeedbackPanel leadId={id!} />
 
             <LeadPropertiesPanel leadId={id!} leadAddress={lead.address} />
+
+            <RecurringSchedulePanel leadId={id!} />
           </div>
         )}
 
