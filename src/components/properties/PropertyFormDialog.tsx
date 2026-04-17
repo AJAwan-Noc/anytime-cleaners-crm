@@ -45,6 +45,7 @@ type FormState = {
   special_instructions: string;
   preferred_products: string;
   notes: string;
+  map_url: string;
 };
 
 const empty = (leadId: string, defaultAddress?: string | null): FormState => ({
@@ -59,6 +60,7 @@ const empty = (leadId: string, defaultAddress?: string | null): FormState => ({
   special_instructions: '',
   preferred_products: '',
   notes: '',
+  map_url: '',
 });
 
 export default function PropertyFormDialog({
@@ -102,6 +104,7 @@ export default function PropertyFormDialog({
         special_instructions: property.special_instructions ?? '',
         preferred_products: property.preferred_products ?? '',
         notes: property.notes ?? '',
+        map_url: property.map_url ?? '',
       });
     } else if (open) {
       setForm(empty(leadId ?? '', defaultAddress));

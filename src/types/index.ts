@@ -110,6 +110,7 @@ export interface Property {
   special_instructions: string | null;
   preferred_products: string | null;
   notes: string | null;
+  map_url: string | null;
   is_active: boolean;
   created_at: string;
   updated_at: string;
