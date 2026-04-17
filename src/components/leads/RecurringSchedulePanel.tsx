@@ -26,7 +26,15 @@ const TYPE_LABELS: Record<ScheduleType, string> = {
   specific_dates: 'Specific Dates',
 };
 
-const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+const WEEKDAYS: { label: string; value: string }[] = [
+  { label: 'Mon', value: 'monday' },
+  { label: 'Tue', value: 'tuesday' },
+  { label: 'Wed', value: 'wednesday' },
+  { label: 'Thu', value: 'thursday' },
+  { label: 'Fri', value: 'friday' },
+  { label: 'Sat', value: 'saturday' },
+  { label: 'Sun', value: 'sunday' },
+];
 
 export default function RecurringSchedulePanel({ leadId }: { leadId: string }) {
   const qc = useQueryClient();
