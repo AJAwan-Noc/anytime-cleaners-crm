@@ -48,13 +48,13 @@ export function TopBar() {
           : 'bg-gray-100 text-gray-800';
 
   return (
-    <header className="h-14 border-b bg-card flex items-center justify-between px-4 shrink-0">
-      <div className="flex items-center gap-3">
-        <SidebarTrigger className="text-muted-foreground" />
-        <h1 className="text-lg font-semibold">{pageTitle}</h1>
+    <header className="h-14 border-b bg-card flex items-center justify-between gap-2 px-2 sm:px-4 shrink-0 min-w-0">
+      <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+        <SidebarTrigger className="text-muted-foreground shrink-0" />
+        <h1 className="text-base sm:text-lg font-semibold truncate">{pageTitle}</h1>
       </div>
 
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2 sm:gap-3 shrink-0">
         <div className="relative">
           <Bell className="h-5 w-5 text-muted-foreground" />
           {notRespondingCount > 0 && (
@@ -65,8 +65,8 @@ export function TopBar() {
         </div>
 
         {teamMember && (
-          <div className="flex items-center gap-2 text-sm">
-            <span className="font-medium hidden sm:inline">{teamMember.name}</span>
+          <div className="flex items-center gap-2 text-sm min-w-0">
+            <span className="font-medium hidden md:inline truncate max-w-[160px]">{teamMember.name}</span>
             <Badge className={`text-[10px] uppercase tracking-wider ${roleBadgeColor}`}>
               {role}
             </Badge>
