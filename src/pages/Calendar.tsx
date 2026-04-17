@@ -498,14 +498,36 @@ function CreateJobDialog({ open, onClose, onCreated }: { open: boolean; onClose:
         <div className="space-y-3">
           <div>
             <Label>Lead (booked)</Label>
-            <Input placeholder="Search lead…" value={search} onChange={(e) => setSearch(e.target.value)} />
-            <Select value={form.lead_id} onValueChange={(v) => setForm((p) => ({ ...p, lead_id: v }))}>
-              <SelectTrigger className="mt-2"><SelectValue placeholder="Select lead" /></SelectTrigger>
-              <SelectContent>
-                {filteredLeads.length === 0 && <div className="px-2 py-1 text-sm text-muted-foreground">No booked leads</div>}
-                {filteredLeads.map((l) => <SelectItem key={l.id} value={l.id}>{l.full_name}</SelectItem>)}
-              </SelectContent>
-            </Select>
+            <Input
+              placeholder="Search lead…"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="mt-1"
+            />
+            <div className="mt-2 max-h-48 overflow-y-auto rounded-md border border-input bg-background">
+              {filteredLeads.length === 0 ? (
+                <div className="px-3 py-2 text-sm text-muted-foreground">No booked leads</div>
+              ) : (
+                filteredLeads.map((l) => {
+                  const selected = form.lead_id === l.id;
+                  return (
+                    <button
+                      key={l.id}
+                      type="button"
+                      onClick={() => setForm((p) => ({ ...p, lead_id: l.id }))}
+                      className={`flex w-full flex-col items-start gap-0.5 px-3 py-2 text-left text-sm hover:bg-accent hover:text-accent-foreground ${
+                        selected ? 'bg-accent text-accent-foreground' : ''
+                      }`}
+                    >
+                      <span className="font-medium">{l.full_name}</span>
+                      {l.address && (
+                        <span className="text-xs text-muted-foreground line-clamp-1">{l.address}</span>
+                      )}
+                    </button>
+                  );
+                })
+              )}
+            </div>
           </div>
           <div>
             <Label>Assigned Cleaner</Label>
