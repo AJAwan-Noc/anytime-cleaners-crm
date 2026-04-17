@@ -110,10 +110,11 @@ const WEEKDAYS: { label: string; value: string }[] = [
 
 export default function RecurringSchedulePanel({ leadId }: { leadId: string }) {
   const qc = useQueryClient();
-  const { role } = useAuth();
+  const { role, teamMember } = useAuth();
   const canEdit = role === 'owner' || role === 'admin' || role === 'manager';
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<RecurringSchedule | null>(null);
+  const [generating, setGenerating] = useState(false);
 
   const { data: schedules = [] } = useQuery({
     queryKey: ['recurring-schedules', leadId],
@@ -128,13 +129,76 @@ export default function RecurringSchedulePanel({ leadId }: { leadId: string }) {
     },
   });
 
+  const { data: lead } = useQuery({
+    queryKey: ['lead-name', leadId],
+    queryFn: async () => {
+      const { data } = await supabase.from('leads').select('full_name').eq('id', leadId).maybeSingle();
+      return data;
+    },
+  });
+
   const active = schedules.find((s) => s.is_active);
+  const nextDate = active ? computeNextDate(active) : null;
 
   const deactivate = async (id: string) => {
     const { error } = await supabase.from('recurring_schedules').update({ is_active: false }).eq('id', id);
     if (error) return toast.error(error.message);
     toast.success('Schedule deactivated');
     qc.invalidateQueries({ queryKey: ['recurring-schedules', leadId] });
+  };
+
+  const generateNext = async () => {
+    if (!active || !nextDate) return;
+    setGenerating(true);
+    try {
+      const { data: job, error } = await supabase
+        .from('jobs')
+        .insert({
+          lead_id: leadId,
+          assigned_to: active.assigned_to,
+          scheduled_date: nextDate,
+          scheduled_time: active.scheduled_time,
+          estimated_duration_hours: active.estimated_duration_hours,
+          status: 'scheduled',
+          notes: active.notes,
+          is_recurring: true,
+          recurring_schedule_id: active.id,
+        })
+        .select()
+        .single();
+      if (error) throw error;
+      if (!job?.id) throw new Error('No job ID returned');
+
+      await supabase
+        .from('recurring_schedules')
+        .update({ last_generated_date: nextDate })
+        .eq('id', active.id);
+
+      console.log('[recurring] POST /job-assigned', { job_id: job.id });
+      await fetch(`${N8N_BASE_URL}/job-assigned`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ job_id: job.id }),
+      }).catch((e) => console.error('n8n /job-assigned failed', e));
+
+      await logActivity({
+        event_type: 'job_created',
+        actor_id: teamMember?.id,
+        actor_name: teamMember?.name,
+        entity_type: 'job',
+        entity_id: job.id,
+        entity_name: lead?.full_name,
+        description: `Recurring job generated for ${lead?.full_name ?? ''} on ${nextDate}`,
+      });
+
+      toast.success(`Next job generated for ${nextDate}`);
+      qc.invalidateQueries({ queryKey: ['recurring-schedules', leadId] });
+      qc.invalidateQueries({ queryKey: ['jobs'] });
+    } catch (e: any) {
+      toast.error(e.message ?? 'Failed to generate job');
+    } finally {
+      setGenerating(false);
+    }
   };
 
   if (!canEdit) return null;
@@ -157,8 +221,14 @@ export default function RecurringSchedulePanel({ leadId }: { leadId: string }) {
             {active.start_date && <p><span className="text-muted-foreground">From:</span> {format(new Date(active.start_date), 'PP')}</p>}
             {active.end_date && <p><span className="text-muted-foreground">To:</span> {format(new Date(active.end_date), 'PP')}</p>}
             {active.estimated_duration_hours && <p><span className="text-muted-foreground">Duration:</span> {active.estimated_duration_hours}h</p>}
+            {active.last_generated_date && <p><span className="text-muted-foreground">Last generated:</span> {format(new Date(active.last_generated_date), 'PP')}</p>}
+            {nextDate && <p className="text-primary"><span className="text-muted-foreground">Next:</span> <span className="font-semibold">{format(new Date(nextDate), 'PP')}</span></p>}
             {active.notes && <p className="text-muted-foreground italic">{active.notes}</p>}
-            <div className="flex gap-2 pt-2">
+            <div className="flex flex-wrap gap-2 pt-2">
+              <Button size="sm" onClick={generateNext} disabled={!nextDate || generating} className="gap-1">
+                {generating ? <Loader2 className="h-3 w-3 animate-spin" /> : <CalendarPlus className="h-3 w-3" />}
+                Generate Next Job
+              </Button>
               <Button size="sm" variant="outline" onClick={() => { setEditing(active); setOpen(true); }}>Edit</Button>
               <Button size="sm" variant="destructive" onClick={() => deactivate(active.id)}>Deactivate</Button>
             </div>
