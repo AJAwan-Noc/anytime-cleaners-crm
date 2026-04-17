@@ -21,6 +21,8 @@ import { Loader2, ArrowLeft, Archive, FileText, BarChart3 } from 'lucide-react';
 import { formatDistanceToNow, format } from 'date-fns';
 import LeadFeedbackPanel from '@/components/leads/LeadFeedbackPanel';
 import LeadPropertiesPanel from '@/components/properties/LeadPropertiesPanel';
+import RecurringSchedulePanel from '@/components/leads/RecurringSchedulePanel';
+import { logActivity } from '@/lib/activityLog';
 
 const SOURCES: LeadSource[] = ['website', 'facebook', 'instagram', 'referral', 'google', 'manual', 'other'];
 const STAGES: LeadStage[] = ['new_lead', 'contacted', 'quote_sent', 'not_responding', 'booked', 'not_interested'];
@@ -98,6 +100,7 @@ export default function LeadDetail() {
 
   const saveMutation = useMutation({
     mutationFn: async () => {
+      const oldStage = lead?.stage;
       const updates: Partial<Lead> = isAgent
         ? { stage: form.stage }
         : {
@@ -113,6 +116,16 @@ export default function LeadDetail() {
           };
       const { error } = await supabase.from('leads').update(updates).eq('id', id!);
       if (error) throw error;
+      if (oldStage && form.stage && oldStage !== form.stage) {
+        await logActivity({
+          event_type: 'lead_stage_changed',
+          actor_id: teamMember?.id,
+          actor_name: teamMember?.name,
+          entity_type: 'lead',
+          entity_id: id!,
+          description: `${lead?.full_name}: ${oldStage} → ${form.stage}`,
+        });
+      }
     },
     onSuccess: () => {
       toast.success('Lead updated');
@@ -135,6 +148,16 @@ export default function LeadDetail() {
         update_type: typeMap[optimistic.update_type] ?? optimistic.update_type.toLowerCase(),
       });
       if (error) throw error;
+      if (optimistic.update_type === 'Note') {
+        await logActivity({
+          event_type: 'note_added',
+          actor_id: teamMember?.id,
+          actor_name: teamMember?.name,
+          entity_type: 'lead',
+          entity_id: id!,
+          description: `Note on ${lead?.full_name}`,
+        });
+      }
     },
     onMutate: async (optimistic: LeadUpdate) => {
       await queryClient.cancelQueries({ queryKey: ['lead-updates', id] });
@@ -411,6 +434,8 @@ export default function LeadDetail() {
             <LeadFeedbackPanel leadId={id!} />
 
             <LeadPropertiesPanel leadId={id!} leadAddress={lead.address} />
+
+            <RecurringSchedulePanel leadId={id!} />
           </div>
         )}
 

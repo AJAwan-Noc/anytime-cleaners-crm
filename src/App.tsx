@@ -20,8 +20,10 @@ import AdminSettings from '@/pages/AdminSettings';
 import EmailTemplates from '@/pages/EmailTemplates';
 import EmailTemplateEditor from '@/pages/EmailTemplateEditor';
 import PublicFeedback from '@/pages/PublicFeedback';
+import CalendarPage from '@/pages/Calendar';
+import ActivityPage from '@/pages/Activity';
+import ClientPortal from '@/pages/ClientPortal';
 import NotFound from '@/pages/NotFound';
-
 
 const queryClient = new QueryClient();
 
@@ -35,6 +37,14 @@ const App = () => (
             <Route path="/login" element={<Login />} />
             <Route path="/feedback" element={<PublicFeedback />} />
             <Route
+              path="/portal"
+              element={
+                <ProtectedRoute allowedRoles={['client']}>
+                  <ClientPortal />
+                </ProtectedRoute>
+              }
+            />
+            <Route
               element={
                 <ProtectedRoute>
                   <AppLayout />
@@ -42,6 +52,14 @@ const App = () => (
               }
             >
               <Route path="/" element={<Dashboard />} />
+              <Route
+                path="/calendar"
+                element={
+                  <ProtectedRoute allowedRoles={['owner', 'admin', 'manager', 'agent', 'cleaner']}>
+                    <CalendarPage />
+                  </ProtectedRoute>
+                }
+              />
               <Route path="/pipeline" element={<Pipeline />} />
               <Route path="/leads" element={<Leads />} />
               <Route path="/leads/new" element={<NewLeadPage />} />
@@ -83,6 +101,14 @@ const App = () => (
                 element={
                   <ProtectedRoute allowedRoles={['owner', 'admin', 'manager']}>
                     <InvoiceDetailPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/activity"
+                element={
+                  <ProtectedRoute allowedRoles={['owner', 'admin', 'manager']}>
+                    <ActivityPage />
                   </ProtectedRoute>
                 }
               />

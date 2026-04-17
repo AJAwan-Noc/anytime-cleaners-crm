@@ -3,6 +3,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { supabase, N8N_BASE_URL } from '@/lib/supabase';
+import { useAuth } from '@/contexts/AuthContext';
+import { logActivity } from '@/lib/activityLog';
 import { Lead, LineItem } from '@/types';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
@@ -42,6 +44,7 @@ async function generateInvoiceNumber(): Promise<string> {
 
 export default function NewInvoicePage() {
   const navigate = useNavigate();
+  const { teamMember } = useAuth();
   const [searchParams] = useSearchParams();
   const paramLeadId = searchParams.get('lead_id');
 
@@ -187,6 +190,15 @@ export default function NewInvoicePage() {
           // n8n webhook failure shouldn't block save
         }
       }
+
+      await logActivity({
+        event_type: 'invoice_created',
+        actor_id: teamMember?.id,
+        actor_name: teamMember?.name,
+        entity_type: 'invoice',
+        entity_id: data.id,
+        description: `Invoice ${invoiceNumber} created (${status})`,
+      });
 
       toast.success(status === 'draft' ? 'Invoice saved as draft' : 'Invoice sent to client');
       navigate(`/invoices/${data.id}`);

@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase, N8N_BASE_URL } from '@/lib/supabase';
+import { useAuth } from '@/contexts/AuthContext';
+import { logActivity } from '@/lib/activityLog';
 import { Invoice, LineItem, InvoiceStatus, INVOICE_STATUS_COLORS } from '@/types';
 import { toast } from 'sonner';
 import { format, parseISO } from 'date-fns';
@@ -50,6 +52,7 @@ export default function InvoiceDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { teamMember } = useAuth();
 
   const [lineItems, setLineItems] = useState<LineItem[]>([]);
   const [notes, setNotes] = useState('');
@@ -166,6 +169,14 @@ export default function InvoiceDetailPage() {
         })
         .eq('id', id!);
       if (error) throw error;
+      await logActivity({
+        event_type: 'invoice_paid',
+        actor_id: teamMember?.id,
+        actor_name: teamMember?.name,
+        entity_type: 'invoice',
+        entity_id: id!,
+        description: `Invoice ${invoice?.invoice_number ?? ''} marked paid via ${payment_method}`,
+      });
       toast.success('Invoice marked as paid');
       setConfirmPaid(false);
       queryClient.invalidateQueries({ queryKey: ['invoice', id] });

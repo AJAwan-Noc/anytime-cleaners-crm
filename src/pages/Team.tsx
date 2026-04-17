@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase, N8N_BASE_URL } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { TeamMember, Role } from '@/types';
+import { logActivity } from '@/lib/activityLog';
 import { toast } from 'sonner';
 import { Loader2, Plus, Pencil, Trash2, Users, KeyRound } from 'lucide-react';
 import {
@@ -32,6 +33,8 @@ const ROLE_BADGE: Record<Role, string> = {
   admin: 'bg-indigo-100 text-indigo-800',
   manager: 'bg-blue-100 text-blue-800',
   agent: 'bg-gray-100 text-gray-800',
+  cleaner: 'bg-teal-100 text-teal-800',
+  client: 'bg-amber-100 text-amber-800',
 };
 
 interface MemberForm {
@@ -172,6 +175,13 @@ export default function Team() {
           throw new Error(data.error || 'Failed to create member');
         }
         toast.success('Member added');
+        await logActivity({
+          event_type: 'team_member_created',
+          actor_id: currentMember?.id,
+          actor_name: currentMember?.name,
+          entity_type: 'team_member',
+          description: `Added ${form.name} (${form.role})`,
+        });
       }
       queryClient.invalidateQueries({ queryKey: ['team-members'] });
       setModalOpen(false);
@@ -195,6 +205,14 @@ export default function Team() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to delete member');
       toast.success(`${deleteTarget.name} has been removed`);
+      await logActivity({
+        event_type: 'team_member_deleted',
+        actor_id: currentMember?.id,
+        actor_name: currentMember?.name,
+        entity_type: 'team_member',
+        entity_id: deleteTarget.id,
+        description: `Removed ${deleteTarget.name}`,
+      });
       queryClient.invalidateQueries({ queryKey: ['team-members'] });
     } catch (err: any) {
       toast.error(err.message || 'Failed to delete member');

@@ -1,4 +1,83 @@
-export type Role = 'owner' | 'admin' | 'manager' | 'agent';
+export type Role = 'owner' | 'admin' | 'manager' | 'agent' | 'cleaner' | 'client';
+
+export type JobStatus = 'scheduled' | 'in_progress' | 'completed' | 'cancelled';
+
+export interface Job {
+  id: string;
+  lead_id: string;
+  assigned_to: string | null;
+  scheduled_date: string;
+  scheduled_time: string;
+  estimated_duration_hours: number | null;
+  status: JobStatus;
+  notes: string | null;
+  is_recurring: boolean;
+  recurring_schedule_id?: string | null;
+  service_type: string | null;
+  created_at: string;
+  updated_at: string;
+  lead?: { id: string; full_name: string; address: string | null; email: string | null; phone: string };
+  assigned_member?: { id: string; name: string };
+}
+
+export const JOB_STATUS_LABELS: Record<JobStatus, string> = {
+  scheduled: 'Scheduled',
+  in_progress: 'In Progress',
+  completed: 'Completed',
+  cancelled: 'Cancelled',
+};
+
+export const JOB_STATUS_COLORS: Record<JobStatus, string> = {
+  scheduled: 'bg-blue-100 text-blue-800',
+  in_progress: 'bg-amber-100 text-amber-800',
+  completed: 'bg-green-100 text-green-800',
+  cancelled: 'bg-red-100 text-red-800',
+};
+
+export const JOB_STATUS_HEX: Record<JobStatus, string> = {
+  scheduled: '#3b82f6',
+  in_progress: '#f59e0b',
+  completed: '#22c55e',
+  cancelled: '#ef4444',
+};
+
+export type ScheduleType =
+  | 'weekly'
+  | 'fortnightly'
+  | 'monthly'
+  | 'quarterly'
+  | 'every_x_days'
+  | 'specific_weekdays'
+  | 'nth_weekday'
+  | 'specific_dates';
+
+export interface RecurringSchedule {
+  id: string;
+  lead_id: string;
+  schedule_type: ScheduleType;
+  config: Record<string, unknown>;
+  start_date: string | null;
+  end_date: string | null;
+  scheduled_time: string;
+  estimated_duration_hours: number | null;
+  assigned_to: string | null;
+  notes: string | null;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ActivityLog {
+  id: string;
+  event_type: string;
+  actor_id: string | null;
+  actor_name: string | null;
+  entity_type: string | null;
+  entity_id: string | null;
+  description: string | null;
+  metadata: Record<string, unknown> | null;
+  created_at: string;
+}
 
 export type LeadStage = 'new_lead' | 'contacted' | 'quote_sent' | 'not_responding' | 'booked' | 'not_interested';
 
