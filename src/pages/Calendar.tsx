@@ -321,8 +321,8 @@ function JobDetailDialog({
         </DialogHeader>
 
         {/* Property info — critical for arriving cleaner */}
-        <div className="rounded-md border border-amber-300 bg-amber-50 p-3 text-sm space-y-1.5">
-          <p className="text-xs font-semibold uppercase tracking-wide text-amber-800">Property Details</p>
+        <div className="rounded-md border-l-4 border-l-primary bg-muted/40 p-3 text-sm space-y-1.5">
+          <p className="text-xs font-semibold uppercase tracking-wide text-primary">Property Details</p>
           {property ? (
             <>
               <PropertyRow label="Entry Code" value={property.access_code || '—'} mono={!!property.access_code} />
@@ -396,6 +396,22 @@ function JobDetailDialog({
 }
 
 function Row({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex justify-between gap-4">
+      <span className="text-muted-foreground">{label}</span>
+      <span className="text-right font-medium">{value}</span>
+    </div>
+  );
+}
+
+function PropertyRow({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
+  return (
+    <div className="flex justify-between gap-4">
+      <span className="text-xs text-muted-foreground">{label}</span>
+      <span className={`text-right font-medium ${mono ? 'font-mono text-base' : 'text-sm'}`}>{value}</span>
+    </div>
+  );
+}
   return (
     <div className="flex justify-between gap-4">
       <span className="text-muted-foreground">{label}</span>
