@@ -79,6 +79,7 @@ export default function Team() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<MemberForm>(emptyForm);
   const [submitting, setSubmitting] = useState(false);
+  const [statsTarget, setStatsTarget] = useState<TeamMember | null>(null);
 
   const [deleteTarget, setDeleteTarget] = useState<TeamMember | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -288,7 +289,7 @@ export default function Team() {
   }));
 
   const allowedRoles = getAllowedRoles(currentRole);
-  const colCount = canWrite ? 9 : 6;
+  const colCount = canWrite ? 10 : 6;
 
   if (isLoading) {
     return (
@@ -359,6 +360,13 @@ export default function Team() {
                     )}
                   </TableCell>
                   <TableCell className="hidden md:table-cell text-right">{leadCounts[m.id] || 0}</TableCell>
+                  {canWrite && (
+                    <TableCell>
+                      <Button variant="ghost" size="icon" onClick={() => setStatsTarget(m)} title="View Stats">
+                        <BarChart3 className="h-4 w-4" />
+                      </Button>
+                    </TableCell>
+                  )}
                   {canWrite && (
                     <TableCell>
                       {manageable && (
@@ -454,6 +462,22 @@ export default function Team() {
                 </SelectContent>
               </Select>
             </div>
+            {form.role === 'cleaner' && (
+              <div className="space-y-2">
+                <Label>Cleaner Type</Label>
+                <Select
+                  value={form.cleaner_type || ''}
+                  onValueChange={(v) => setForm({ ...form, cleaner_type: v as CleanerType })}
+                >
+                  <SelectTrigger><SelectValue placeholder="Select type" /></SelectTrigger>
+                  <SelectContent>
+                    {CLEANER_TYPES.map((c) => (
+                      <SelectItem key={c} value={c}>{c.charAt(0).toUpperCase() + c.slice(1)}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
           </div>
           <DialogFooter className="flex-col sm:flex-row gap-2">
             {editingId && (
