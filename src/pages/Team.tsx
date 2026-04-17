@@ -175,6 +175,13 @@ export default function Team() {
           throw new Error(data.error || 'Failed to create member');
         }
         toast.success('Member added');
+        await logActivity({
+          event_type: 'team_member_created',
+          actor_id: currentMember?.id,
+          actor_name: currentMember?.name,
+          entity_type: 'team_member',
+          description: `Added ${form.name} (${form.role})`,
+        });
       }
       queryClient.invalidateQueries({ queryKey: ['team-members'] });
       setModalOpen(false);
@@ -198,6 +205,14 @@ export default function Team() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to delete member');
       toast.success(`${deleteTarget.name} has been removed`);
+      await logActivity({
+        event_type: 'team_member_deleted',
+        actor_id: currentMember?.id,
+        actor_name: currentMember?.name,
+        entity_type: 'team_member',
+        entity_id: deleteTarget.id,
+        description: `Removed ${deleteTarget.name}`,
+      });
       queryClient.invalidateQueries({ queryKey: ['team-members'] });
     } catch (err: any) {
       toast.error(err.message || 'Failed to delete member');
