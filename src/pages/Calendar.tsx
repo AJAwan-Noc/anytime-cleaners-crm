@@ -21,6 +21,9 @@ import { Plus, Loader2, Play, CheckCircle2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { logActivity } from '@/lib/activityLog';
+import RecurringScheduleFields, {
+  RecurringScheduleValue, emptyRecurringValue, buildRecurringPayload,
+} from '@/components/recurring/RecurringScheduleFields';
 
 type FilterRange = 'all' | 'today' | 'week' | 'month';
 
@@ -426,7 +429,9 @@ function CreateJobDialog({ open, onClose, onCreated }: { open: boolean; onClose:
     notes: '',
     is_recurring: false,
   });
+  const [recurring, setRecurring] = useState<RecurringScheduleValue>(emptyRecurringValue());
   const [search, setSearch] = useState('');
+  const [creating, setCreating] = useState(false);
 
   const { data: leads = [] } = useQuery({
     queryKey: ['booked-leads'],
@@ -451,51 +456,79 @@ function CreateJobDialog({ open, onClose, onCreated }: { open: boolean; onClose:
       toast.error('Lead and date are required');
       return;
     }
-    const lead = leads.find((l) => l.id === form.lead_id);
-    const { data, error } = await supabase
-      .from('jobs')
-      .insert({
-        lead_id: form.lead_id,
-        assigned_to: form.assigned_to || null,
-        scheduled_date: form.scheduled_date,
-        scheduled_time: form.scheduled_time,
-        estimated_duration_hours: form.estimated_duration_hours,
-        status: 'scheduled',
-        notes: form.notes || null,
-        is_recurring: form.is_recurring,
-      })
-      .select()
-      .single();
-    if (error) {
-      toast.error(error.message);
+    if (form.is_recurring && recurring.type === 'specific_weekdays' && recurring.weekdays.length === 0) {
+      toast.error('Pick at least one weekday for the recurring schedule');
       return;
     }
-    if (!data?.id) {
-      toast.error('Job created but no ID returned');
-      return;
+    setCreating(true);
+    try {
+      const lead = leads.find((l) => l.id === form.lead_id);
+      let recurring_schedule_id: string | null = null;
+
+      if (form.is_recurring) {
+        const payload = buildRecurringPayload(
+          recurring,
+          form.lead_id,
+          form.assigned_to || null,
+          form.notes || null,
+        );
+        // Default start_date to scheduled_date when not provided
+        if (!payload.start_date) payload.start_date = form.scheduled_date;
+        const { data: rs, error: rsErr } = await supabase
+          .from('recurring_schedules')
+          .insert(payload)
+          .select()
+          .single();
+        if (rsErr) throw rsErr;
+        recurring_schedule_id = rs?.id ?? null;
+      }
+
+      const { data, error } = await supabase
+        .from('jobs')
+        .insert({
+          lead_id: form.lead_id,
+          assigned_to: form.assigned_to || null,
+          scheduled_date: form.scheduled_date,
+          scheduled_time: form.scheduled_time,
+          estimated_duration_hours: form.estimated_duration_hours,
+          status: 'scheduled',
+          notes: form.notes || null,
+          is_recurring: form.is_recurring,
+          recurring_schedule_id,
+        })
+        .select()
+        .single();
+      if (error) throw error;
+      if (!data?.id) throw new Error('Job created but no ID returned');
+
+      console.log('[calendar] POST /job-assigned', { job_id: data.id, created_by_id: teamMember?.id });
+      await fetch(`${N8N_BASE_URL}/job-assigned`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ job_id: data.id, created_by_id: teamMember?.id }),
+      }).catch((e) => console.error('n8n /job-assigned failed', e));
+
+      await logActivity({
+        event_type: 'job_created',
+        actor_id: teamMember?.id,
+        actor_name: teamMember?.name,
+        entity_type: 'job',
+        entity_id: data.id,
+        entity_name: lead?.full_name,
+        description: `Job scheduled for ${lead?.full_name ?? ''}${form.is_recurring ? ' (recurring)' : ''}`,
+      });
+      toast.success(form.is_recurring ? 'Recurring job created' : 'Job created');
+      onCreated();
+    } catch (e: any) {
+      toast.error(e.message ?? 'Failed to create job');
+    } finally {
+      setCreating(false);
     }
-    console.log('[calendar] POST /job-assigned', { job_id: data.id });
-    await fetch(`${N8N_BASE_URL}/job-assigned`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ job_id: data.id }),
-    }).catch((e) => console.error('n8n /job-assigned failed', e));
-    await logActivity({
-      event_type: 'job_created',
-      actor_id: teamMember?.id,
-      actor_name: teamMember?.name,
-      entity_type: 'job',
-      entity_id: data.id,
-      entity_name: lead?.full_name,
-      description: `Job scheduled for ${lead?.full_name ?? ''}`,
-    });
-    toast.success('Job created');
-    onCreated();
   };
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader><DialogTitle>Create Job</DialogTitle></DialogHeader>
         <div className="space-y-3">
           <div>
@@ -550,10 +583,21 @@ function CreateJobDialog({ open, onClose, onCreated }: { open: boolean; onClose:
             <Label>Recurring Job</Label>
             <Switch checked={form.is_recurring} onCheckedChange={(v) => setForm((p) => ({ ...p, is_recurring: v }))} />
           </div>
+          {form.is_recurring && (
+            <div className="border-t pt-3">
+              <p className="text-xs text-muted-foreground mb-2">
+                Configure how this job recurs. A recurring schedule will be saved and linked to this job.
+              </p>
+              <RecurringScheduleFields value={recurring} onChange={setRecurring} />
+            </div>
+          )}
         </div>
         <DialogFooter>
-          <Button variant="ghost" onClick={onClose}>Cancel</Button>
-          <Button onClick={create}>Create Job</Button>
+          <Button variant="ghost" onClick={onClose} disabled={creating}>Cancel</Button>
+          <Button onClick={create} disabled={creating}>
+            {creating && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}
+            Create Job
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
