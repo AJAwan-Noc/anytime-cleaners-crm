@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase, N8N_BASE_URL } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { TeamMember, Role } from '@/types';
+import { logActivity } from '@/lib/activityLog';
 import { toast } from 'sonner';
 import { Loader2, Plus, Pencil, Trash2, Users, KeyRound } from 'lucide-react';
 import {
