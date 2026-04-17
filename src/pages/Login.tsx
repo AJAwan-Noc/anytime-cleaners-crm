@@ -9,11 +9,10 @@ import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function Login() {
-  const { user, loading: authLoading } = useAuth();
+  const { user, role, loading: authLoading, signIn } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const { signIn } = useAuth();
 
   if (authLoading) {
     return (
@@ -24,7 +23,6 @@ export default function Login() {
   }
 
   if (user) {
-    const { role } = useAuth();
     if (role === 'client') return <Navigate to="/portal" replace />;
     return <Navigate to="/" replace />;
   }
