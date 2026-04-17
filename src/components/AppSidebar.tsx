@@ -7,6 +7,8 @@ import {
   Mail,
   Kanban,
   Building2,
+  Calendar as CalendarIcon,
+  Activity,
 } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { useAuth } from '@/contexts/AuthContext';
@@ -31,11 +33,13 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   { title: 'Dashboard', url: '/', icon: LayoutDashboard, roles: ['owner', 'admin', 'manager', 'agent'] },
+  { title: 'Calendar', url: '/calendar', icon: CalendarIcon, roles: ['owner', 'admin', 'manager', 'agent', 'cleaner'] },
   { title: 'Pipeline', url: '/pipeline', icon: Kanban, roles: ['owner', 'admin', 'manager', 'agent'] },
   { title: 'Leads', url: '/leads', icon: Users, roles: ['owner', 'admin', 'manager', 'agent'] },
   { title: 'Properties', url: '/properties', icon: Building2, roles: ['owner', 'admin', 'manager'] },
   { title: 'Team', url: '/team', icon: UserCog, roles: ['owner', 'admin', 'manager'] },
   { title: 'Invoices', url: '/invoices', icon: FileText, roles: ['owner', 'admin', 'manager'] },
+  { title: 'Activity', url: '/activity', icon: Activity, roles: ['owner', 'admin', 'manager'] },
   { title: 'Admin', url: '/admin', icon: Settings, roles: ['owner', 'admin'] },
   { title: 'Email Templates', url: '/admin/email-templates', icon: Mail, roles: ['owner', 'admin'] },
 ];

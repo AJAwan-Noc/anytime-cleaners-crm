@@ -23,7 +23,11 @@ export default function Login() {
     );
   }
 
-  if (user) return <Navigate to="/" replace />;
+  if (user) {
+    const { role } = useAuth();
+    if (role === 'client') return <Navigate to="/portal" replace />;
+    return <Navigate to="/" replace />;
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
