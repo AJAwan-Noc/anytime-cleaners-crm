@@ -315,10 +315,25 @@ function JobDetailDialog({
 
   return (
     <Dialog open={open} onOpenChange={(o) => { if (!o) { setEditing(false); onClose(); } }}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Job Details</DialogTitle>
         </DialogHeader>
+
+        {/* Property info — critical for arriving cleaner */}
+        <div className="rounded-md border border-amber-300 bg-amber-50 p-3 text-sm space-y-1.5">
+          <p className="text-xs font-semibold uppercase tracking-wide text-amber-800">Property Details</p>
+          {property ? (
+            <>
+              <PropertyRow label="Entry Code" value={property.access_code || '—'} mono={!!property.access_code} />
+              <PropertyRow label="Parking" value={property.parking_notes || '—'} />
+              <PropertyRow label="Special Instructions" value={property.special_instructions || '—'} />
+            </>
+          ) : (
+            <p className="text-muted-foreground">No property details on file.</p>
+          )}
+        </div>
+
         <div className="space-y-3 text-sm">
           <Row label="Lead" value={job.lead?.full_name ?? '—'} />
           <Row label="Address" value={job.lead?.address ?? '—'} />
