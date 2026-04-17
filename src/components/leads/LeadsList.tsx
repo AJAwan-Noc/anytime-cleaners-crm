@@ -184,16 +184,16 @@ export default function LeadsList() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-bold text-foreground">Leads</h1>
-        <Button onClick={() => navigate('/leads/new')}>
+        <Button onClick={() => navigate('/leads/new')} size="sm" className="sm:size-default">
           <Plus className="h-4 w-4 mr-1" /> New Lead
         </Button>
       </div>
 
       {/* Filter bar */}
-      <div className="flex flex-wrap items-center gap-3">
-        <div className="relative flex-1 min-w-[200px] max-w-sm">
+      <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+        <div className="relative w-full sm:flex-1 sm:min-w-[200px] sm:max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Search name or phone…"
@@ -204,7 +204,7 @@ export default function LeadsList() {
         </div>
 
         <Select value={stageFilter} onValueChange={setStageFilter}>
-          <SelectTrigger className="w-[160px]">
+          <SelectTrigger className="w-full sm:w-[160px]">
             <SelectValue placeholder="Stage" />
           </SelectTrigger>
           <SelectContent>
@@ -216,7 +216,7 @@ export default function LeadsList() {
         </Select>
 
         <Select value={sourceFilter} onValueChange={setSourceFilter}>
-          <SelectTrigger className="w-[160px]">
+          <SelectTrigger className="w-full sm:w-[160px]">
             <SelectValue placeholder="Source" />
           </SelectTrigger>
           <SelectContent>
@@ -229,7 +229,7 @@ export default function LeadsList() {
 
         {role !== 'agent' && (
           <Select value={agentFilter} onValueChange={setAgentFilter}>
-            <SelectTrigger className="w-[180px]">
+            <SelectTrigger className="w-full sm:w-[180px]">
               <SelectValue placeholder="Agent" />
             </SelectTrigger>
             <SelectContent>
@@ -250,7 +250,7 @@ export default function LeadsList() {
       ) : filtered.length === 0 ? (
         <p className="text-center py-12 text-muted-foreground">No leads found.</p>
       ) : (
-        <div className="rounded-lg border bg-card">
+        <div className="rounded-lg border bg-card overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
@@ -264,12 +264,12 @@ export default function LeadsList() {
                   </TableHead>
                 )}
                 <TableHead>Name</TableHead>
-                <TableHead>Phone</TableHead>
-                <TableHead>Service</TableHead>
-                <TableHead>Source</TableHead>
+                <TableHead className="hidden md:table-cell">Phone</TableHead>
+                <TableHead className="hidden lg:table-cell">Service</TableHead>
+                <TableHead className="hidden lg:table-cell">Source</TableHead>
                 <TableHead>Stage</TableHead>
-                <TableHead>Assigned</TableHead>
-                <TableHead>Created</TableHead>
+                <TableHead className="hidden md:table-cell">Assigned</TableHead>
+                <TableHead className="hidden xl:table-cell">Created</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -289,24 +289,25 @@ export default function LeadsList() {
                       />
                     </TableCell>
                   )}
-                  <TableCell className="font-medium">
-                    <div className="flex items-center gap-2">
-                      {lead.full_name}
+                  <TableCell className="font-medium max-w-[200px]">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="truncate">{lead.full_name}</span>
                       {lead.notes?.startsWith('CLIENT PORTAL REQUEST:') && (
                         <Badge variant="outline" className="text-xs border-primary/40 text-primary">Portal</Badge>
                       )}
                     </div>
+                    <div className="md:hidden text-xs text-muted-foreground mt-0.5">{lead.phone}</div>
                   </TableCell>
-                  <TableCell>{lead.phone}</TableCell>
-                  <TableCell>{lead.service_type}</TableCell>
-                  <TableCell className="capitalize">{lead.source}</TableCell>
+                  <TableCell className="hidden md:table-cell whitespace-nowrap">{lead.phone}</TableCell>
+                  <TableCell className="hidden lg:table-cell">{lead.service_type}</TableCell>
+                  <TableCell className="hidden lg:table-cell capitalize">{lead.source}</TableCell>
                   <TableCell>
                     <Badge className={STAGE_COLORS[lead.stage]} variant="secondary">
                       {STAGE_LABELS[lead.stage]}
                     </Badge>
                   </TableCell>
-                  <TableCell>{lead.assigned_member?.name ?? '—'}</TableCell>
-                  <TableCell className="text-muted-foreground">
+                  <TableCell className="hidden md:table-cell">{lead.assigned_member?.name ?? '—'}</TableCell>
+                  <TableCell className="hidden xl:table-cell text-muted-foreground whitespace-nowrap">
                     {format(new Date(lead.created_at), 'MMM d, yyyy')}
                   </TableCell>
                 </TableRow>

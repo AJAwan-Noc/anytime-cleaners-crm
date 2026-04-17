@@ -294,29 +294,29 @@ export default function Team() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           <Users className="h-6 w-6 text-primary" />
           <h1 className="text-2xl font-bold">Team</h1>
         </div>
         {canWrite && (
-          <Button onClick={openAdd}>
+          <Button onClick={openAdd} size="sm" className="sm:size-default">
             <Plus className="h-4 w-4" /> Add New Member
           </Button>
         )}
       </div>
 
       {/* Table */}
-      <div className="rounded-lg border bg-card">
+      <div className="rounded-lg border bg-card overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow>
               <TableHead>Name</TableHead>
-              <TableHead>Email</TableHead>
-              <TableHead>Phone</TableHead>
+              <TableHead className="hidden md:table-cell">Email</TableHead>
+              <TableHead className="hidden lg:table-cell">Phone</TableHead>
               <TableHead>Role</TableHead>
-              <TableHead>Active</TableHead>
-              <TableHead className="text-right">Leads Assigned</TableHead>
+              <TableHead className="hidden sm:table-cell">Active</TableHead>
+              <TableHead className="hidden md:table-cell text-right">Leads</TableHead>
               {canWrite && <TableHead />}
               {canWrite && <TableHead />}
               {canWrite && <TableHead />}
@@ -329,13 +329,16 @@ export default function Team() {
 
               return (
                 <TableRow key={m.id}>
-                  <TableCell className="font-medium">{m.name}</TableCell>
-                  <TableCell>{m.email}</TableCell>
-                  <TableCell>{m.phone || '—'}</TableCell>
+                  <TableCell className="font-medium max-w-[180px]">
+                    <div className="truncate">{m.name}</div>
+                    <div className="md:hidden text-xs text-muted-foreground truncate">{m.email}</div>
+                  </TableCell>
+                  <TableCell className="hidden md:table-cell max-w-[200px] truncate">{m.email}</TableCell>
+                  <TableCell className="hidden lg:table-cell">{m.phone || '—'}</TableCell>
                   <TableCell>
                     <Badge className={ROLE_BADGE[m.role]}>{m.role}</Badge>
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="hidden sm:table-cell">
                     {canWrite && manageable ? (
                       <Switch
                         checked={m.is_active}
@@ -349,7 +352,7 @@ export default function Team() {
                       </Badge>
                     )}
                   </TableCell>
-                  <TableCell className="text-right">{leadCounts[m.id] || 0}</TableCell>
+                  <TableCell className="hidden md:table-cell text-right">{leadCounts[m.id] || 0}</TableCell>
                   {canWrite && (
                     <TableCell>
                       {manageable && (
