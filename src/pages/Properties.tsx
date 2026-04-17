@@ -2,9 +2,11 @@ import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/contexts/AuthContext';
 import { Property, PropertyType, PROPERTY_TYPE_COLORS, PROPERTY_TYPE_LABELS } from '@/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
@@ -12,14 +14,18 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
-import { Loader2, Search } from 'lucide-react';
+import { Loader2, Plus, Search } from 'lucide-react';
+import PropertyFormDialog from '@/components/properties/PropertyFormDialog';
 
 const TYPES: PropertyType[] = ['residential', 'commercial', 'industrial', 'other'];
 
 export default function Properties() {
   const navigate = useNavigate();
+  const { role } = useAuth();
+  const canCreate = role === 'owner' || role === 'admin' || role === 'manager';
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState<string>('all');
+  const [createOpen, setCreateOpen] = useState(false);
 
   const { data: properties = [], isLoading } = useQuery({
     queryKey: ['properties-all'],
@@ -44,9 +50,16 @@ export default function Properties() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">Properties</h1>
-        <p className="text-sm text-muted-foreground">All properties across all leads.</p>
+      <div className="flex items-start justify-between gap-3 flex-wrap">
+        <div>
+          <h1 className="text-2xl font-bold">Properties</h1>
+          <p className="text-sm text-muted-foreground">All properties across all leads.</p>
+        </div>
+        {canCreate && (
+          <Button onClick={() => setCreateOpen(true)} className="gap-1.5">
+            <Plus className="h-4 w-4" /> Add Property
+          </Button>
+        )}
       </div>
 
       <Card>
@@ -124,6 +137,12 @@ export default function Properties() {
           )}
         </CardContent>
       </Card>
+
+      <PropertyFormDialog
+        open={createOpen}
+        onOpenChange={setCreateOpen}
+        property={null}
+      />
     </div>
   );
 }

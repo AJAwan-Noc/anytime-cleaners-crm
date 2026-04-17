@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useEffect, useMemo, useState } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { Property, PropertyType, PROPERTY_TYPE_LABELS } from '@/types';
 import {
@@ -12,7 +12,14 @@ import { Button } from '@/components/ui/button';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
-import { Loader2 } from 'lucide-react';
+import {
+  Popover, PopoverContent, PopoverTrigger,
+} from '@/components/ui/popover';
+import {
+  Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList,
+} from '@/components/ui/command';
+import { cn } from '@/lib/utils';
+import { Check, ChevronsUpDown, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 const TYPES: PropertyType[] = ['residential', 'commercial', 'industrial', 'other'];
@@ -20,12 +27,14 @@ const TYPES: PropertyType[] = ['residential', 'commercial', 'industrial', 'other
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  leadId: string;
+  /** When provided, property is locked to this lead. When omitted, user must pick a lead. */
+  leadId?: string;
   property?: Property | null;
   defaultAddress?: string | null;
 }
 
 type FormState = {
+  lead_id: string;
   address: string;
   property_type: PropertyType;
   bedrooms: string;
@@ -38,7 +47,8 @@ type FormState = {
   notes: string;
 };
 
-const empty = (defaultAddress?: string | null): FormState => ({
+const empty = (leadId: string, defaultAddress?: string | null): FormState => ({
+  lead_id: leadId,
   address: defaultAddress ?? '',
   property_type: 'residential',
   bedrooms: '',
@@ -55,11 +65,33 @@ export default function PropertyFormDialog({
   open, onOpenChange, leadId, property, defaultAddress,
 }: Props) {
   const qc = useQueryClient();
-  const [form, setForm] = useState<FormState>(empty(defaultAddress));
+  const showLeadPicker = !leadId;
+  const [form, setForm] = useState<FormState>(empty(leadId ?? '', defaultAddress));
+  const [leadPickerOpen, setLeadPickerOpen] = useState(false);
+
+  // Only fetch leads when picker is needed
+  const { data: leads = [] } = useQuery({
+    queryKey: ['leads-picker'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('leads')
+        .select('id, full_name, address')
+        .order('full_name', { ascending: true });
+      if (error) throw error;
+      return data as Array<{ id: string; full_name: string; address: string | null }>;
+    },
+    enabled: showLeadPicker && open,
+  });
+
+  const selectedLead = useMemo(
+    () => leads.find((l) => l.id === form.lead_id) ?? null,
+    [leads, form.lead_id],
+  );
 
   useEffect(() => {
     if (property) {
       setForm({
+        lead_id: property.lead_id ?? leadId ?? '',
         address: property.address ?? '',
         property_type: property.property_type ?? 'residential',
         bedrooms: property.bedrooms?.toString() ?? '',
@@ -72,9 +104,9 @@ export default function PropertyFormDialog({
         notes: property.notes ?? '',
       });
     } else if (open) {
-      setForm(empty(defaultAddress));
+      setForm(empty(leadId ?? '', defaultAddress));
     }
-  }, [property, open, defaultAddress]);
+  }, [property, open, defaultAddress, leadId]);
 
   const set = <K extends keyof FormState>(k: K, v: FormState[K]) =>
     setForm((p) => ({ ...p, [k]: v }));
@@ -82,7 +114,7 @@ export default function PropertyFormDialog({
   const saveMutation = useMutation({
     mutationFn: async () => {
       const payload = {
-        lead_id: leadId,
+        lead_id: form.lead_id,
         address: form.address.trim(),
         property_type: form.property_type,
         bedrooms: form.bedrooms ? Number(form.bedrooms) : null,
@@ -104,7 +136,9 @@ export default function PropertyFormDialog({
     },
     onSuccess: () => {
       toast.success(property ? 'Property updated' : 'Property added');
-      qc.invalidateQueries({ queryKey: ['lead-properties', leadId] });
+      if (form.lead_id) {
+        qc.invalidateQueries({ queryKey: ['lead-properties', form.lead_id] });
+      }
       qc.invalidateQueries({ queryKey: ['properties-all'] });
       onOpenChange(false);
     },
@@ -113,6 +147,10 @@ export default function PropertyFormDialog({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!form.lead_id) {
+      toast.error('Please select a lead');
+      return;
+    }
     if (!form.address.trim()) {
       toast.error('Address is required');
       return;
@@ -127,6 +165,64 @@ export default function PropertyFormDialog({
           <DialogTitle>{property ? 'Edit Property' : 'Add Property'}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
+          {showLeadPicker && (
+            <div className="space-y-1.5">
+              <Label>Lead *</Label>
+              <Popover open={leadPickerOpen} onOpenChange={setLeadPickerOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    role="combobox"
+                    className={cn(
+                      'w-full justify-between font-normal',
+                      !selectedLead && 'text-muted-foreground',
+                    )}
+                  >
+                    {selectedLead ? selectedLead.full_name : 'Select a lead…'}
+                    <ChevronsUpDown className="h-4 w-4 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                  <Command>
+                    <CommandInput placeholder="Search leads…" />
+                    <CommandList>
+                      <CommandEmpty>No leads found.</CommandEmpty>
+                      <CommandGroup>
+                        {leads.map((l) => (
+                          <CommandItem
+                            key={l.id}
+                            value={`${l.full_name} ${l.address ?? ''}`}
+                            onSelect={() => {
+                              set('lead_id', l.id);
+                              if (!form.address.trim() && l.address) {
+                                set('address', l.address);
+                              }
+                              setLeadPickerOpen(false);
+                            }}
+                          >
+                            <Check
+                              className={cn(
+                                'mr-2 h-4 w-4',
+                                form.lead_id === l.id ? 'opacity-100' : 'opacity-0',
+                              )}
+                            />
+                            <div className="flex flex-col">
+                              <span>{l.full_name}</span>
+                              {l.address && (
+                                <span className="text-xs text-muted-foreground">{l.address}</span>
+                              )}
+                            </div>
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
+            </div>
+          )}
+
           <div className="space-y-1.5">
             <Label>Address *</Label>
             <Input value={form.address} onChange={(e) => set('address', e.target.value)} required />
