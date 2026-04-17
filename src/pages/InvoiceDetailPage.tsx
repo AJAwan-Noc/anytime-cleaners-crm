@@ -52,6 +52,7 @@ export default function InvoiceDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { teamMember } = useAuth();
 
   const [lineItems, setLineItems] = useState<LineItem[]>([]);
   const [notes, setNotes] = useState('');
@@ -168,6 +169,14 @@ export default function InvoiceDetailPage() {
         })
         .eq('id', id!);
       if (error) throw error;
+      await logActivity({
+        event_type: 'invoice_paid',
+        actor_id: teamMember?.id,
+        actor_name: teamMember?.name,
+        entity_type: 'invoice',
+        entity_id: id!,
+        description: `Invoice ${invoice?.invoice_number ?? ''} marked paid via ${payment_method}`,
+      });
       toast.success('Invoice marked as paid');
       setConfirmPaid(false);
       queryClient.invalidateQueries({ queryKey: ['invoice', id] });
