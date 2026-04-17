@@ -248,6 +248,17 @@ export default function PropertyFormDialog({
             </div>
           </div>
 
+          <div className="space-y-1.5">
+            <Label>Map Link <span className="text-muted-foreground font-normal">(Google Maps / Apple Maps URL)</span></Label>
+            <Input
+              type="url"
+              inputMode="url"
+              value={form.map_url}
+              onChange={(e) => set('map_url', e.target.value)}
+              placeholder="https://maps.google.com/?q=..."
+            />
+          </div>
+
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1.5">
               <Label>Bedrooms</Label>
