@@ -90,7 +90,7 @@ export type LeadStage = 'new_lead' | 'contacted' | 'quote_sent' | 'not_respondin
 
 export type LeadSource = 'website' | 'facebook' | 'instagram' | 'referral' | 'google' | 'manual' | 'other';
 
-export type ServiceType = 'Regular Cleaning' | 'Deep Clean' | 'Move-In-Out' | 'Commercial' | 'Window Cleaning' | 'Other';
+// (Legacy ServiceType literal removed — service types are now stored in the service_types table; see ServiceType interface below.)
 
 export type InvoiceStatus = 'draft' | 'sent' | 'paid' | 'overdue' | 'cancelled';
 
