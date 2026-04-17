@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase, N8N_BASE_URL } from '@/lib/supabase';
+import { useAuth } from '@/contexts/AuthContext';
+import { logActivity } from '@/lib/activityLog';
 import { Invoice, LineItem, InvoiceStatus, INVOICE_STATUS_COLORS } from '@/types';
 import { toast } from 'sonner';
 import { format, parseISO } from 'date-fns';
