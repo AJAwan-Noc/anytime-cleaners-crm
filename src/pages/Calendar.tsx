@@ -126,15 +126,15 @@ export default function CalendarPage() {
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
+        <div className="min-w-0">
           <h1 className="text-2xl font-bold">Calendar</h1>
           <p className="text-sm text-muted-foreground">
             {isCleaner ? 'Your assigned jobs' : 'All scheduled cleaning jobs'}
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <Select value={filter} onValueChange={(v) => setFilter(v as FilterRange)}>
-            <SelectTrigger className="w-[140px]"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="w-[130px] sm:w-[140px]"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Jobs</SelectItem>
               <SelectItem value="today">Today</SelectItem>
@@ -143,35 +143,37 @@ export default function CalendarPage() {
             </SelectContent>
           </Select>
           {canEdit && (
-            <Button onClick={() => setCreateOpen(true)} className="gap-1">
-              <Plus className="h-4 w-4" /> Create Job
+            <Button onClick={() => setCreateOpen(true)} size="sm" className="gap-1 sm:size-default">
+              <Plus className="h-4 w-4" /> <span className="hidden xs:inline">Create Job</span><span className="xs:hidden">New</span>
             </Button>
           )}
         </div>
       </div>
 
       <Card>
-        <CardContent className="p-4">
+        <CardContent className="p-2 sm:p-4 overflow-x-auto">
           {isLoading ? (
             <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
           ) : (
-            <FullCalendar
-              ref={calRef}
-              plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
-              initialView="dayGridMonth"
-              headerToolbar={{
-                left: 'prev,next today',
-                center: 'title',
-                right: 'dayGridMonth,timeGridWeek,timeGridDay',
-              }}
-              events={events}
-              eventClick={(info) => {
-                const job = info.event.extendedProps.job as Job;
-                setSelectedJob(job);
-              }}
-              height="auto"
-              nowIndicator
-            />
+            <div className="min-w-[320px] [&_.fc-toolbar]:flex-wrap [&_.fc-toolbar]:gap-2 [&_.fc-toolbar-title]:text-base sm:[&_.fc-toolbar-title]:text-lg [&_.fc-button]:text-xs sm:[&_.fc-button]:text-sm [&_.fc-button]:px-2 sm:[&_.fc-button]:px-3">
+              <FullCalendar
+                ref={calRef}
+                plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
+                initialView="dayGridMonth"
+                headerToolbar={{
+                  left: 'prev,next today',
+                  center: 'title',
+                  right: 'dayGridMonth,timeGridWeek,timeGridDay',
+                }}
+                events={events}
+                eventClick={(info) => {
+                  const job = info.event.extendedProps.job as Job;
+                  setSelectedJob(job);
+                }}
+                height="auto"
+                nowIndicator
+              />
+            </div>
           )}
         </CardContent>
       </Card>
