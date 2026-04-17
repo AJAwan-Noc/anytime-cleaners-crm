@@ -23,6 +23,7 @@ import PublicFeedback from '@/pages/PublicFeedback';
 import CalendarPage from '@/pages/Calendar';
 import ActivityPage from '@/pages/Activity';
 import ClientPortal from '@/pages/ClientPortal';
+import Profile from '@/pages/Profile';
 import NotFound from '@/pages/NotFound';
 
 const queryClient = new QueryClient();
@@ -64,6 +65,7 @@ const App = () => (
               <Route path="/leads" element={<Leads />} />
               <Route path="/leads/new" element={<NewLeadPage />} />
               <Route path="/leads/:id" element={<LeadDetailPage />} />
+              <Route path="/profile" element={<Profile />} />
               <Route
                 path="/properties"
                 element={
