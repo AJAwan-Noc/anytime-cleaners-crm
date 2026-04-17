@@ -59,7 +59,9 @@ function SettingsSection({
 }
 
 // ── Email toggle items ──
-const EMAIL_TOGGLES = [
+type EmailToggle = { key: string; label: string; desc: string };
+
+const EMAIL_TOGGLES: EmailToggle[] = [
   { key: 'email_welcome_enabled', label: 'Welcome Email', desc: 'Send welcome email to new leads' },
   { key: 'email_team_alert_enabled', label: 'Team Alerts', desc: 'Alert team members of new leads' },
   { key: 'email_stage_alert_enabled', label: 'Stage Change Alerts', desc: 'Notify on lead stage changes' },
@@ -67,6 +69,17 @@ const EMAIL_TOGGLES = [
   { key: 'email_booking_confirmation_enabled', label: 'Booking Confirmation', desc: 'Send booking confirmation to clients' },
   { key: 'email_invoice_enabled', label: 'Invoice Emails', desc: 'Send invoice emails to clients' },
   { key: 'email_report_enabled', label: 'AI Reports', desc: 'Send periodic AI summary reports' },
+];
+
+const JOB_EMAIL_TOGGLES: EmailToggle[] = [
+  { key: 'email_job_assigned_cleaner_enabled', label: 'Job Assigned — Cleaner', desc: 'Job assigned — notify cleaner' },
+  { key: 'email_job_assigned_agent_enabled', label: 'Job Assigned — Agent', desc: 'Job assigned — notify agent' },
+  { key: 'email_job_started_lead_enabled', label: 'Job Started — Client', desc: 'Job started — notify client' },
+  { key: 'email_job_started_manager_enabled', label: 'Job Started — Managers', desc: 'Job started — notify managers' },
+  { key: 'email_job_started_agent_enabled', label: 'Job Started — Agent', desc: 'Job started — notify agent' },
+  { key: 'email_job_completed_lead_enabled', label: 'Job Completed — Client', desc: 'Job completed — notify client' },
+  { key: 'email_job_completed_manager_enabled', label: 'Job Completed — Managers', desc: 'Job completed — notify managers' },
+  { key: 'email_job_completed_agent_enabled', label: 'Job Completed — Agent', desc: 'Job completed — notify agent' },
 ];
 
 function EmailTogglesSection({ cfg, qc }: { cfg: Record<string, string>; qc: any }) {
@@ -86,6 +99,22 @@ function EmailTogglesSection({ cfg, qc }: { cfg: Record<string, string>; qc: any
     }
   };
 
+  const renderToggle = (t: EmailToggle) => (
+    <div key={t.key} className="flex items-center justify-between py-1">
+      <div className="space-y-0.5">
+        <Label className="text-sm font-medium">{t.label}</Label>
+        <p className="text-xs text-muted-foreground">{t.desc}</p>
+      </div>
+      <div className="flex items-center gap-2">
+        {savedKey === t.key && <Check className="h-4 w-4 text-green-500 animate-in fade-in" />}
+        <Switch
+          checked={cfg[t.key] === 'true'}
+          onCheckedChange={(v) => toggle(t.key, v)}
+        />
+      </div>
+    </div>
+  );
+
   return (
     <Card>
       <CardHeader>
@@ -93,21 +122,14 @@ function EmailTogglesSection({ cfg, qc }: { cfg: Record<string, string>; qc: any
         <CardDescription>Toggle which automated emails are active. Changes save automatically.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        {EMAIL_TOGGLES.map((t) => (
-          <div key={t.key} className="flex items-center justify-between py-1">
-            <div className="space-y-0.5">
-              <Label className="text-sm font-medium">{t.label}</Label>
-              <p className="text-xs text-muted-foreground">{t.desc}</p>
-            </div>
-            <div className="flex items-center gap-2">
-              {savedKey === t.key && <Check className="h-4 w-4 text-green-500 animate-in fade-in" />}
-              <Switch
-                checked={cfg[t.key] === 'true'}
-                onCheckedChange={(v) => toggle(t.key, v)}
-              />
-            </div>
+        {EMAIL_TOGGLES.map(renderToggle)}
+
+        <div className="pt-4 mt-2 border-t">
+          <h3 className="text-sm font-semibold text-foreground mb-3">Job Notifications</h3>
+          <div className="space-y-4">
+            {JOB_EMAIL_TOGGLES.map(renderToggle)}
           </div>
-        ))}
+        </div>
       </CardContent>
     </Card>
   );
