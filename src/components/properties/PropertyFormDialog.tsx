@@ -45,6 +45,7 @@ type FormState = {
   special_instructions: string;
   preferred_products: string;
   notes: string;
+  map_url: string;
 };
 
 const empty = (leadId: string, defaultAddress?: string | null): FormState => ({
@@ -59,6 +60,7 @@ const empty = (leadId: string, defaultAddress?: string | null): FormState => ({
   special_instructions: '',
   preferred_products: '',
   notes: '',
+  map_url: '',
 });
 
 export default function PropertyFormDialog({
@@ -102,6 +104,7 @@ export default function PropertyFormDialog({
         special_instructions: property.special_instructions ?? '',
         preferred_products: property.preferred_products ?? '',
         notes: property.notes ?? '',
+        map_url: property.map_url ?? '',
       });
     } else if (open) {
       setForm(empty(leadId ?? '', defaultAddress));
@@ -125,6 +128,7 @@ export default function PropertyFormDialog({
         special_instructions: form.special_instructions.trim() || null,
         preferred_products: form.preferred_products.trim() || null,
         notes: form.notes.trim() || null,
+        map_url: form.map_url.trim() || null,
       };
       if (property) {
         const { error } = await supabase.from('properties').update(payload).eq('id', property.id);
@@ -242,6 +246,17 @@ export default function PropertyFormDialog({
               <Label>Square Metres</Label>
               <Input type="number" min="0" value={form.square_metres} onChange={(e) => set('square_metres', e.target.value)} />
             </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <Label>Map Link <span className="text-muted-foreground font-normal">(Google Maps / Apple Maps URL)</span></Label>
+            <Input
+              type="url"
+              inputMode="url"
+              value={form.map_url}
+              onChange={(e) => set('map_url', e.target.value)}
+              placeholder="https://maps.google.com/?q=..."
+            />
           </div>
 
           <div className="grid grid-cols-2 gap-4">

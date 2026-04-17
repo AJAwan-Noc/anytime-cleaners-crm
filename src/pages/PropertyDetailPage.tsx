@@ -13,7 +13,7 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import {
-  ArrowLeft, Bath, Bed, Loader2, MapPin, Pencil, Ruler, Trash2, User,
+  ArrowLeft, Bath, Bed, ExternalLink, Loader2, Map, MapPin, Pencil, Ruler, Trash2, User,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import PropertyFormDialog from '@/components/properties/PropertyFormDialog';
@@ -153,6 +153,25 @@ export default function PropertyDetailPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             <DetailRow icon={<MapPin className="h-4 w-4" />} label="Address" value={property.address} />
+            <div className="grid grid-cols-3 gap-3">
+              <div className="col-span-1 flex items-center gap-1.5 text-sm text-muted-foreground">
+                <Map className="h-4 w-4" /> Map Link
+              </div>
+              <div className="col-span-2 text-sm">
+                {property.map_url ? (
+                  <a
+                    href={property.map_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 text-primary hover:underline break-all"
+                  >
+                    Open in Maps <ExternalLink className="h-3.5 w-3.5 shrink-0" />
+                  </a>
+                ) : (
+                  <span className="text-muted-foreground italic">—</span>
+                )}
+              </div>
+            </div>
             <div className="grid grid-cols-3 gap-4">
               <Stat icon={<Bed className="h-4 w-4" />} label="Bedrooms" value={property.bedrooms} />
               <Stat icon={<Bath className="h-4 w-4" />} label="Bathrooms" value={property.bathrooms} />
