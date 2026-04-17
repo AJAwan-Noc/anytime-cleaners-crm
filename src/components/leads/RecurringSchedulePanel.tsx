@@ -118,12 +118,12 @@ function ScheduleDialog({
   const [duration, setDuration] = useState<number>(existing?.estimated_duration_hours ?? 2);
   const [assignedTo, setAssignedTo] = useState<string>(existing?.assigned_to ?? '');
   const [notes, setNotes] = useState<string>(existing?.notes ?? '');
-  const cfg = (existing?.config ?? {}) as any;
-  const [intervalDays, setIntervalDays] = useState<number>(cfg.interval_days ?? 7);
-  const [weekdays, setWeekdays] = useState<string[]>(cfg.weekdays ?? []);
-  const [weekNumber, setWeekNumber] = useState<number>(cfg.week_number ?? 1);
-  const [nthWeekday, setNthWeekday] = useState<string>(cfg.weekday ?? 'Mon');
-  const [specificDates, setSpecificDates] = useState<string[]>(cfg.dates ?? []);
+  const [intervalDays, setIntervalDays] = useState<number>(existing?.interval_days ?? 7);
+  const [weekdays, setWeekdays] = useState<string[]>((existing?.weekdays as string[]) ?? []);
+  const nthCfg = (existing?.nth_weekday ?? {}) as { week?: number; day?: string };
+  const [weekNumber, setWeekNumber] = useState<number>(nthCfg.week ?? 1);
+  const [nthWeekday, setNthWeekday] = useState<string>(nthCfg.day ?? 'monday');
+  const [specificDates, setSpecificDates] = useState<string[]>((existing?.specific_dates as string[]) ?? []);
   const [newDate, setNewDate] = useState('');
   const [saving, setSaving] = useState(false);
 
@@ -135,22 +135,17 @@ function ScheduleDialog({
     },
   });
 
-  const buildConfig = (): Record<string, unknown> => {
-    switch (type) {
-      case 'every_x_days': return { interval_days: intervalDays };
-      case 'specific_weekdays': return { weekdays };
-      case 'nth_weekday': return { week_number: weekNumber, weekday: nthWeekday };
-      case 'specific_dates': return { dates: specificDates };
-      default: return {};
-    }
-  };
-
   const save = async () => {
     setSaving(true);
+    // DB schema uses separate columns. The schema_type 'every_x_days' must map to 'custom_days'.
+    const dbType = type === 'every_x_days' ? 'custom_days' : type;
     const payload = {
       lead_id: leadId,
-      schedule_type: type,
-      config: buildConfig(),
+      schedule_type: dbType,
+      interval_days: type === 'every_x_days' ? intervalDays : null,
+      weekdays: type === 'specific_weekdays' ? weekdays : null,
+      nth_weekday: type === 'nth_weekday' ? { week: weekNumber, day: nthWeekday } : null,
+      specific_dates: type === 'specific_dates' ? specificDates : null,
       start_date: startDate || null,
       end_date: endDate || null,
       scheduled_time: time + ':00',
