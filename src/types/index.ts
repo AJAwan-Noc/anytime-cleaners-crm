@@ -10,13 +10,14 @@ export interface Job {
   scheduled_time: string;
   estimated_duration_hours: number | null;
   status: JobStatus;
+  started_at: string | null;
+  completed_at: string | null;
   notes: string | null;
   is_recurring: boolean;
   recurring_schedule_id?: string | null;
-  service_type: string | null;
   created_at: string;
   updated_at: string;
-  lead?: { id: string; full_name: string; address: string | null; email: string | null; phone: string };
+  lead?: { id: string; full_name: string; address: string | null; email: string | null; phone: string; service_type?: string };
   assigned_member?: { id: string; name: string };
 }
 

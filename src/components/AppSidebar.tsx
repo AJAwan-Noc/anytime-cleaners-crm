@@ -9,6 +9,7 @@ import {
   Building2,
   Calendar as CalendarIcon,
   Activity,
+  User as UserIcon,
 } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { useAuth } from '@/contexts/AuthContext';
@@ -40,6 +41,7 @@ const navItems: NavItem[] = [
   { title: 'Team', url: '/team', icon: UserCog, roles: ['owner', 'admin', 'manager'] },
   { title: 'Invoices', url: '/invoices', icon: FileText, roles: ['owner', 'admin', 'manager'] },
   { title: 'Activity', url: '/activity', icon: Activity, roles: ['owner', 'admin', 'manager'] },
+  { title: 'Profile', url: '/profile', icon: UserIcon, roles: ['owner', 'admin', 'manager', 'agent', 'cleaner'] },
   { title: 'Admin', url: '/admin', icon: Settings, roles: ['owner', 'admin'] },
   { title: 'Email Templates', url: '/admin/email-templates', icon: Mail, roles: ['owner', 'admin'] },
 ];

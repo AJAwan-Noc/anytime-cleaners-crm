@@ -43,7 +43,7 @@ export default function CalendarPage() {
     queryFn: async () => {
       let q = supabase
         .from('jobs')
-        .select('*, lead:leads(id, full_name, address, email, phone), assigned_member:team_members!jobs_assigned_to_fkey(id, name)')
+        .select('*, lead:leads(id, full_name, address, email, phone, service_type), assigned_member:team_members!jobs_assigned_to_fkey(id, name)')
         .order('scheduled_date', { ascending: true });
 
       if (isCleaner && teamMember) {
@@ -83,7 +83,7 @@ export default function CalendarPage() {
     const end = new Date(start.getTime() + (j.estimated_duration_hours ?? 1) * 3600 * 1000);
     return {
       id: j.id,
-      title: `${j.lead?.full_name ?? 'Job'} — ${j.service_type ?? ''}`,
+      title: `${j.lead?.full_name ?? 'Job'} — ${j.lead?.service_type ?? ''}`,
       start: start.toISOString(),
       end: end.toISOString(),
       backgroundColor: JOB_STATUS_HEX[j.status],
@@ -93,14 +93,18 @@ export default function CalendarPage() {
   });
 
   const updateJobStatus = useMutation({
-    mutationFn: async ({ jobId, status, endpoint, eventLabel }: { jobId: string; status: JobStatus; endpoint: string; eventLabel: 'job_started' | 'job_completed' }) => {
-      const { error } = await supabase.from('jobs').update({ status, updated_at: new Date().toISOString() }).eq('id', jobId);
+    mutationFn: async ({ jobId, status, endpoint, eventLabel }: { jobId: string; status: JobStatus; endpoint: string; eventLabel: 'job_started' | 'job_completed'; successMsg: string }) => {
+      const updates: Record<string, unknown> = { status, updated_at: new Date().toISOString() };
+      if (status === 'in_progress') updates.started_at = new Date().toISOString();
+      if (status === 'completed') updates.completed_at = new Date().toISOString();
+      const { error } = await supabase.from('jobs').update(updates).eq('id', jobId);
       if (error) throw error;
+      console.log(`[calendar] POST /${endpoint}`, { job_id: jobId });
       await fetch(`${N8N_BASE_URL}/${endpoint}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ job_id: jobId }),
-      }).catch(() => null);
+      }).catch((e) => console.error(`n8n /${endpoint} failed`, e));
       await logActivity({
         event_type: eventLabel,
         actor_id: teamMember?.id,
@@ -110,8 +114,8 @@ export default function CalendarPage() {
         description: `${teamMember?.name ?? 'Cleaner'} ${eventLabel === 'job_started' ? 'started' : 'completed'} a job`,
       });
     },
-    onSuccess: () => {
-      toast.success('Job updated');
+    onSuccess: (_d, vars) => {
+      toast.success(vars.successMsg);
       qc.invalidateQueries({ queryKey: ['jobs'] });
       setSelectedJob(null);
       setConfirmAction(null);
@@ -210,10 +214,14 @@ export default function CalendarPage() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>
-              {confirmAction === 'start' ? 'Start this job?' : 'Mark this job complete?'}
+              {confirmAction === 'start'
+                ? `Start cleaning for ${selectedJob?.lead?.full_name ?? 'this lead'}?`
+                : `Mark job complete for ${selectedJob?.lead?.full_name ?? 'this lead'}?`}
             </AlertDialogTitle>
             <AlertDialogDescription>
-              This will notify the team and update the job status.
+              {confirmAction === 'start'
+                ? 'This will notify the team.'
+                : 'This will notify the team and client.'}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -222,9 +230,9 @@ export default function CalendarPage() {
               onClick={() => {
                 if (!selectedJob || !confirmAction) return;
                 if (confirmAction === 'start') {
-                  updateJobStatus.mutate({ jobId: selectedJob.id, status: 'in_progress', endpoint: 'job-started', eventLabel: 'job_started' });
+                  updateJobStatus.mutate({ jobId: selectedJob.id, status: 'in_progress', endpoint: 'job-started', eventLabel: 'job_started', successMsg: 'Job started — notifications sent' });
                 } else {
-                  updateJobStatus.mutate({ jobId: selectedJob.id, status: 'completed', endpoint: 'job-completed', eventLabel: 'job_completed' });
+                  updateJobStatus.mutate({ jobId: selectedJob.id, status: 'completed', endpoint: 'job-completed', eventLabel: 'job_completed', successMsg: 'Job completed — notifications sent' });
                 }
               }}
             >
@@ -260,6 +268,22 @@ function JobDetailDialog({
     enabled: canEdit,
   });
 
+  const { data: property } = useQuery({
+    queryKey: ['job-property', job?.lead_id],
+    enabled: !!job?.lead_id,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('properties')
+        .select('access_code, parking_notes, special_instructions, address')
+        .eq('lead_id', job!.lead_id)
+        .eq('is_active', true)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      return data as { access_code: string | null; parking_notes: string | null; special_instructions: string | null; address: string } | null;
+    },
+  });
+
   if (!job) return null;
 
   const start = () => {
@@ -291,14 +315,29 @@ function JobDetailDialog({
 
   return (
     <Dialog open={open} onOpenChange={(o) => { if (!o) { setEditing(false); onClose(); } }}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Job Details</DialogTitle>
         </DialogHeader>
+
+        {/* Property info — critical for arriving cleaner */}
+        <div className="rounded-md border-l-4 border-l-primary bg-muted/40 p-3 text-sm space-y-1.5">
+          <p className="text-xs font-semibold uppercase tracking-wide text-primary">Property Details</p>
+          {property ? (
+            <>
+              <PropertyRow label="Entry Code" value={property.access_code || '—'} mono={!!property.access_code} />
+              <PropertyRow label="Parking" value={property.parking_notes || '—'} />
+              <PropertyRow label="Special Instructions" value={property.special_instructions || '—'} />
+            </>
+          ) : (
+            <p className="text-muted-foreground">No property details on file.</p>
+          )}
+        </div>
+
         <div className="space-y-3 text-sm">
           <Row label="Lead" value={job.lead?.full_name ?? '—'} />
           <Row label="Address" value={job.lead?.address ?? '—'} />
-          <Row label="Service" value={job.service_type ?? '—'} />
+          <Row label="Service" value={job.lead?.service_type ?? '—'} />
           <Row label="Cleaner" value={job.assigned_member?.name ?? 'Unassigned'} />
           <Row label="Date" value={`${format(new Date(job.scheduled_date), 'PP')} at ${job.scheduled_time?.slice(0, 5)}`} />
           <Row label="Duration" value={job.estimated_duration_hours ? `${job.estimated_duration_hours}h` : '—'} />
@@ -365,6 +404,15 @@ function Row({ label, value }: { label: string; value: string }) {
   );
 }
 
+function PropertyRow({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
+  return (
+    <div className="flex justify-between gap-4">
+      <span className="text-xs text-muted-foreground">{label}</span>
+      <span className={`text-right font-medium ${mono ? 'font-mono text-base' : 'text-sm'}`}>{value}</span>
+    </div>
+  );
+}
+
 function CreateJobDialog({ open, onClose, onCreated }: { open: boolean; onClose: () => void; onCreated: () => void }) {
   const { teamMember } = useAuth();
   const [form, setForm] = useState({
@@ -375,7 +423,6 @@ function CreateJobDialog({ open, onClose, onCreated }: { open: boolean; onClose:
     estimated_duration_hours: 2,
     notes: '',
     is_recurring: false,
-    service_type: '',
   });
   const [search, setSearch] = useState('');
 
@@ -414,7 +461,6 @@ function CreateJobDialog({ open, onClose, onCreated }: { open: boolean; onClose:
         status: 'scheduled',
         notes: form.notes || null,
         is_recurring: form.is_recurring,
-        service_type: form.service_type || lead?.service_type || null,
       })
       .select()
       .single();
@@ -422,17 +468,23 @@ function CreateJobDialog({ open, onClose, onCreated }: { open: boolean; onClose:
       toast.error(error.message);
       return;
     }
+    if (!data?.id) {
+      toast.error('Job created but no ID returned');
+      return;
+    }
+    console.log('[calendar] POST /job-assigned', { job_id: data.id });
     await fetch(`${N8N_BASE_URL}/job-assigned`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ job_id: data.id }),
-    }).catch(() => null);
+    }).catch((e) => console.error('n8n /job-assigned failed', e));
     await logActivity({
       event_type: 'job_created',
       actor_id: teamMember?.id,
       actor_name: teamMember?.name,
       entity_type: 'job',
       entity_id: data.id,
+      entity_name: lead?.full_name,
       description: `Job scheduled for ${lead?.full_name ?? ''}`,
     });
     toast.success('Job created');
