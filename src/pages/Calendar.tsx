@@ -337,7 +337,7 @@ function JobDetailDialog({
         <div className="space-y-3 text-sm">
           <Row label="Lead" value={job.lead?.full_name ?? '—'} />
           <Row label="Address" value={job.lead?.address ?? '—'} />
-          <Row label="Service" value={job.service_type ?? '—'} />
+          <Row label="Service" value={job.lead?.service_type ?? '—'} />
           <Row label="Cleaner" value={job.assigned_member?.name ?? 'Unassigned'} />
           <Row label="Date" value={`${format(new Date(job.scheduled_date), 'PP')} at ${job.scheduled_time?.slice(0, 5)}`} />
           <Row label="Duration" value={job.estimated_duration_hours ? `${job.estimated_duration_hours}h` : '—'} />
