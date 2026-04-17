@@ -149,7 +149,7 @@ export default function Team() {
 
   const openEdit = (m: TeamMember) => {
     setEditingId(m.id);
-    setForm({ name: m.name, email: m.email, phone: m.phone || '', role: m.role });
+    setForm({ name: m.name, email: m.email, phone: m.phone || '', role: m.role, cleaner_type: (m.cleaner_type as CleanerType) || '' });
     setModalOpen(true);
   };
 
@@ -160,10 +160,11 @@ export default function Team() {
     }
     setSubmitting(true);
     try {
+      const cleaner_type = form.role === 'cleaner' ? (form.cleaner_type || null) : null;
       if (editingId) {
         const { error } = await supabase
           .from('team_members')
-          .update({ name: form.name, email: form.email, phone: form.phone || null, role: form.role })
+          .update({ name: form.name, email: form.email, phone: form.phone || null, role: form.role, cleaner_type })
           .eq('id', editingId);
         if (error) throw error;
         toast.success('Member updated');
@@ -172,7 +173,7 @@ export default function Team() {
         const res = await fetch(`${N8N_BASE_URL}/create-team-member`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name: form.name, email: form.email, phone: form.phone || null, role: form.role, password: 'Welcome123!' }),
+          body: JSON.stringify({ name: form.name, email: form.email, phone: form.phone || null, role: form.role, cleaner_type, password: 'Welcome123!' }),
         });
         const data = await res.json();
         if (!res.ok || data.success === false) {
@@ -188,6 +189,7 @@ export default function Team() {
         });
       }
       queryClient.invalidateQueries({ queryKey: ['team-members'] });
+      queryClient.invalidateQueries({ queryKey: ['cleaner-performance'] });
       setModalOpen(false);
     } catch (err: any) {
       toast.error(err.message || 'Something went wrong');
