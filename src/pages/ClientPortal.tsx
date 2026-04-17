@@ -40,7 +40,7 @@ export default function ClientPortal() {
     queryFn: async () => {
       const { data } = await supabase
         .from('jobs')
-        .select('*, assigned_member:team_members!jobs_assigned_to_fkey(id,name)')
+        .select('*, lead:leads(service_type), assigned_member:team_members!jobs_assigned_to_fkey(id,name)')
         .in('lead_id', ids)
         .order('scheduled_date', { ascending: false });
       return (data ?? []) as Job[];
@@ -91,7 +91,7 @@ export default function ClientPortal() {
                 {jobs.map((j) => (
                   <div key={j.id} className="flex items-center justify-between border rounded-md p-3 text-sm">
                     <div>
-                      <p className="font-medium">{j.service_type ?? 'Cleaning'}</p>
+                      <p className="font-medium">{j.lead?.service_type ?? 'Cleaning'}</p>
                       <p className="text-xs text-muted-foreground">
                         {format(new Date(j.scheduled_date), 'PP')} at {j.scheduled_time?.slice(0, 5)} · {j.assigned_member?.name ?? 'TBD'}
                       </p>
