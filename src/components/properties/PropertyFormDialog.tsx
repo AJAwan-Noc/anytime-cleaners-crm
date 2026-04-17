@@ -128,6 +128,7 @@ export default function PropertyFormDialog({
         special_instructions: form.special_instructions.trim() || null,
         preferred_products: form.preferred_products.trim() || null,
         notes: form.notes.trim() || null,
+        map_url: form.map_url.trim() || null,
       };
       if (property) {
         const { error } = await supabase.from('properties').update(payload).eq('id', property.id);
