@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/lib/supabase';
+import { supabase, N8N_BASE_URL } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { RecurringSchedule, ScheduleType } from '@/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -11,9 +11,81 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Plus, Repeat, Loader2, X } from 'lucide-react';
+import { Plus, Repeat, Loader2, X, CalendarPlus } from 'lucide-react';
 import { toast } from 'sonner';
-import { format } from 'date-fns';
+import { format, addDays, addMonths, addWeeks, getDay } from 'date-fns';
+import { logActivity } from '@/lib/activityLog';
+
+const WEEKDAY_INDEX: Record<string, number> = {
+  sunday: 0, monday: 1, tuesday: 2, wednesday: 3, thursday: 4, friday: 5, saturday: 6,
+};
+
+/** Compute the next occurrence date for a recurring schedule (returns YYYY-MM-DD or null). */
+function computeNextDate(s: RecurringSchedule): string | null {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const baseStr = s.last_generated_date ?? s.start_date;
+  if (!baseStr) return null;
+  const base = new Date(baseStr);
+  base.setHours(0, 0, 0, 0);
+
+  let next: Date | null = null;
+
+  switch (s.schedule_type) {
+    case 'weekly':
+      next = addWeeks(base, 1);
+      break;
+    case 'fortnightly':
+      next = addWeeks(base, 2);
+      break;
+    case 'monthly':
+      next = addMonths(base, 1);
+      break;
+    case 'quarterly':
+      next = addMonths(base, 3);
+      break;
+    case 'custom_days':
+      next = addDays(base, s.interval_days ?? 7);
+      break;
+    case 'specific_weekdays': {
+      const wkdays = ((s.weekdays as string[]) ?? []).map((w) => WEEKDAY_INDEX[w]).filter((x) => x != null);
+      if (wkdays.length === 0) return null;
+      const start = s.last_generated_date ? addDays(base, 1) : base;
+      for (let i = 0; i < 14; i++) {
+        const d = addDays(start, i);
+        if (wkdays.includes(getDay(d)) && d >= today) { next = d; break; }
+      }
+      break;
+    }
+    case 'nth_weekday': {
+      const cfg = s.nth_weekday as { week?: number; day?: string } | null;
+      if (!cfg?.week || !cfg.day) return null;
+      const targetDow = WEEKDAY_INDEX[cfg.day];
+      const startMonth = s.last_generated_date ? addMonths(base, 1) : base;
+      for (let m = 0; m < 12; m++) {
+        const monthStart = new Date(startMonth.getFullYear(), startMonth.getMonth() + m, 1);
+        const offset = (targetDow - getDay(monthStart) + 7) % 7;
+        const candidate = new Date(monthStart);
+        candidate.setDate(1 + offset + (cfg.week - 1) * 7);
+        if (candidate.getMonth() === monthStart.getMonth() && candidate >= today) {
+          next = candidate;
+          break;
+        }
+      }
+      break;
+    }
+    case 'specific_dates': {
+      const dates = ((s.specific_dates as string[]) ?? []).map((d) => new Date(d)).sort((a, b) => a.getTime() - b.getTime());
+      next = dates.find((d) => d > today) ?? null;
+      break;
+    }
+  }
+
+  if (!next) return null;
+  if (s.end_date && next > new Date(s.end_date)) return null;
+  return format(next, 'yyyy-MM-dd');
+}
+
 
 const TYPE_LABELS: Record<ScheduleType, string> = {
   weekly: 'Weekly',
