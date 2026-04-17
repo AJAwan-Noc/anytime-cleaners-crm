@@ -199,9 +199,9 @@ function ScheduleDialog({
               <Label>Weekdays</Label>
               <div className="flex flex-wrap gap-3 mt-1">
                 {WEEKDAYS.map((d) => (
-                  <label key={d} className="flex items-center gap-1 text-sm">
-                    <Checkbox checked={weekdays.includes(d)} onCheckedChange={(v) => setWeekdays((p) => v ? [...p, d] : p.filter((x) => x !== d))} />
-                    {d}
+                  <label key={d.value} className="flex items-center gap-1 text-sm">
+                    <Checkbox checked={weekdays.includes(d.value)} onCheckedChange={(v) => setWeekdays((p) => v ? [...p, d.value] : p.filter((x) => x !== d.value))} />
+                    {d.label}
                   </label>
                 ))}
               </div>
@@ -224,7 +224,7 @@ function ScheduleDialog({
                 <Select value={nthWeekday} onValueChange={setNthWeekday}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    {WEEKDAYS.map((d) => <SelectItem key={d} value={d}>{d}</SelectItem>)}
+                    {WEEKDAYS.map((d) => <SelectItem key={d.value} value={d.value}>{d.label}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
