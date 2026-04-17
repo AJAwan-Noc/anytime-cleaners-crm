@@ -2,51 +2,44 @@ import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase, N8N_BASE_URL } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
-import { RecurringSchedule, ScheduleType } from '@/types';
+import { RecurringSchedule, ScheduleType, DaySchedule } from '@/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Plus, Repeat, Loader2, X, CalendarPlus } from 'lucide-react';
+import { Plus, Repeat, Loader2, CalendarPlus } from 'lucide-react';
 import { toast } from 'sonner';
 import { format, addDays, addMonths, addWeeks, getDay } from 'date-fns';
 import { logActivity } from '@/lib/activityLog';
+import RecurringScheduleFields, {
+  RecurringScheduleValue, emptyRecurringValue, buildRecurringPayload, TYPE_LABELS, WEEKDAYS,
+} from '@/components/recurring/RecurringScheduleFields';
 
 const WEEKDAY_INDEX: Record<string, number> = {
   sunday: 0, monday: 1, tuesday: 2, wednesday: 3, thursday: 4, friday: 5, saturday: 6,
 };
 
-/** Compute the next occurrence date for a recurring schedule (returns YYYY-MM-DD or null). */
-function computeNextDate(s: RecurringSchedule): string | null {
+/** Compute the next occurrence (date + time) for a recurring schedule. Returns null if none. */
+function computeNextOccurrence(s: RecurringSchedule): { date: string; time: string } | null {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const baseStr = s.last_generated_date ?? s.start_date;
   if (!baseStr) return null;
   const base = new Date(baseStr);
   base.setHours(0, 0, 0, 0);
+  const defaultTime = s.scheduled_time?.slice(0, 5) ?? '09:00';
 
   let next: Date | null = null;
+  let nextTime = defaultTime;
 
   switch (s.schedule_type) {
-    case 'weekly':
-      next = addWeeks(base, 1);
-      break;
-    case 'fortnightly':
-      next = addWeeks(base, 2);
-      break;
-    case 'monthly':
-      next = addMonths(base, 1);
-      break;
-    case 'quarterly':
-      next = addMonths(base, 3);
-      break;
-    case 'custom_days':
-      next = addDays(base, s.interval_days ?? 7);
-      break;
+    case 'weekly': next = addWeeks(base, 1); break;
+    case 'fortnightly': next = addWeeks(base, 2); break;
+    case 'monthly': next = addMonths(base, 1); break;
+    case 'quarterly': next = addMonths(base, 3); break;
+    case 'custom_days': next = addDays(base, s.interval_days ?? 7); break;
     case 'specific_weekdays': {
       const wkdays = ((s.weekdays as string[]) ?? []).map((w) => WEEKDAY_INDEX[w]).filter((x) => x != null);
       if (wkdays.length === 0) return null;
@@ -54,6 +47,13 @@ function computeNextDate(s: RecurringSchedule): string | null {
       for (let i = 0; i < 14; i++) {
         const d = addDays(start, i);
         if (wkdays.includes(getDay(d)) && d >= today) { next = d; break; }
+      }
+      // pick time matching this weekday from day_schedules
+      if (next) {
+        const dayName = Object.entries(WEEKDAY_INDEX).find(([, idx]) => idx === getDay(next!))?.[0];
+        const ds = (s.day_schedules ?? []) as DaySchedule[];
+        const match = dayName ? ds.find((d) => d.day === dayName) : null;
+        if (match) nextTime = match.time;
       }
       break;
     }
@@ -83,30 +83,8 @@ function computeNextDate(s: RecurringSchedule): string | null {
 
   if (!next) return null;
   if (s.end_date && next > new Date(s.end_date)) return null;
-  return format(next, 'yyyy-MM-dd');
+  return { date: format(next, 'yyyy-MM-dd'), time: nextTime };
 }
-
-
-const TYPE_LABELS: Record<ScheduleType, string> = {
-  weekly: 'Weekly',
-  fortnightly: 'Fortnightly',
-  monthly: 'Monthly',
-  quarterly: 'Quarterly',
-  every_x_days: 'Every X Days',
-  specific_weekdays: 'Specific Weekdays',
-  nth_weekday: 'Nth Weekday of Month',
-  specific_dates: 'Specific Dates',
-};
-
-const WEEKDAYS: { label: string; value: string }[] = [
-  { label: 'Mon', value: 'monday' },
-  { label: 'Tue', value: 'tuesday' },
-  { label: 'Wed', value: 'wednesday' },
-  { label: 'Thu', value: 'thursday' },
-  { label: 'Fri', value: 'friday' },
-  { label: 'Sat', value: 'saturday' },
-  { label: 'Sun', value: 'sunday' },
-];
 
 export default function RecurringSchedulePanel({ leadId }: { leadId: string }) {
   const qc = useQueryClient();
@@ -138,7 +116,7 @@ export default function RecurringSchedulePanel({ leadId }: { leadId: string }) {
   });
 
   const active = schedules.find((s) => s.is_active);
-  const nextDate = active ? computeNextDate(active) : null;
+  const nextOccurrence = active ? computeNextOccurrence(active) : null;
 
   const deactivate = async (id: string) => {
     const { error } = await supabase.from('recurring_schedules').update({ is_active: false }).eq('id', id);
@@ -148,7 +126,7 @@ export default function RecurringSchedulePanel({ leadId }: { leadId: string }) {
   };
 
   const generateNext = async () => {
-    if (!active || !nextDate) return;
+    if (!active || !nextOccurrence) return;
     setGenerating(true);
     try {
       const { data: job, error } = await supabase
@@ -156,8 +134,8 @@ export default function RecurringSchedulePanel({ leadId }: { leadId: string }) {
         .insert({
           lead_id: leadId,
           assigned_to: active.assigned_to,
-          scheduled_date: nextDate,
-          scheduled_time: active.scheduled_time,
+          scheduled_date: nextOccurrence.date,
+          scheduled_time: `${nextOccurrence.time}:00`,
           estimated_duration_hours: active.estimated_duration_hours,
           status: 'scheduled',
           notes: active.notes,
@@ -171,14 +149,14 @@ export default function RecurringSchedulePanel({ leadId }: { leadId: string }) {
 
       await supabase
         .from('recurring_schedules')
-        .update({ last_generated_date: nextDate })
+        .update({ last_generated_date: nextOccurrence.date })
         .eq('id', active.id);
 
-      console.log('[recurring] POST /job-assigned', { job_id: job.id });
+      console.log('[recurring] POST /job-assigned', { job_id: job.id, created_by_id: teamMember?.id });
       await fetch(`${N8N_BASE_URL}/job-assigned`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ job_id: job.id }),
+        body: JSON.stringify({ job_id: job.id, created_by_id: teamMember?.id }),
       }).catch((e) => console.error('n8n /job-assigned failed', e));
 
       await logActivity({
@@ -188,10 +166,10 @@ export default function RecurringSchedulePanel({ leadId }: { leadId: string }) {
         entity_type: 'job',
         entity_id: job.id,
         entity_name: lead?.full_name,
-        description: `Recurring job generated for ${lead?.full_name ?? ''} on ${nextDate}`,
+        description: `Recurring job generated for ${lead?.full_name ?? ''} on ${nextOccurrence.date}`,
       });
 
-      toast.success(`Next job generated for ${nextDate}`);
+      toast.success(`Next job generated for ${nextOccurrence.date}`);
       qc.invalidateQueries({ queryKey: ['recurring-schedules', leadId] });
       qc.invalidateQueries({ queryKey: ['jobs'] });
     } catch (e: any) {
@@ -216,16 +194,35 @@ export default function RecurringSchedulePanel({ leadId }: { leadId: string }) {
       <CardContent>
         {active ? (
           <div className="space-y-2 text-sm">
-            <p><span className="text-muted-foreground">Type:</span> <span className="font-medium">{TYPE_LABELS[(active.schedule_type === 'custom_days' ? 'every_x_days' : active.schedule_type) as ScheduleType]}</span></p>
-            <p><span className="text-muted-foreground">Time:</span> {active.scheduled_time?.slice(0, 5)}</p>
+            <p>
+              <span className="text-muted-foreground">Type:</span>{' '}
+              <span className="font-medium">
+                {TYPE_LABELS[(active.schedule_type === 'custom_days' ? 'every_x_days' : active.schedule_type) as ScheduleType]}
+              </span>
+            </p>
+            {active.schedule_type === 'specific_weekdays' && Array.isArray(active.day_schedules) && active.day_schedules.length > 0 ? (
+              <div className="text-muted-foreground">
+                <span>Times:</span>{' '}
+                <span className="text-foreground">
+                  {(active.day_schedules as DaySchedule[]).map((d) => `${d.day.slice(0, 3)} ${d.time}`).join(', ')}
+                </span>
+              </div>
+            ) : (
+              <p><span className="text-muted-foreground">Time:</span> {active.scheduled_time?.slice(0, 5)}</p>
+            )}
             {active.start_date && <p><span className="text-muted-foreground">From:</span> {format(new Date(active.start_date), 'PP')}</p>}
             {active.end_date && <p><span className="text-muted-foreground">To:</span> {format(new Date(active.end_date), 'PP')}</p>}
             {active.estimated_duration_hours && <p><span className="text-muted-foreground">Duration:</span> {active.estimated_duration_hours}h</p>}
             {active.last_generated_date && <p><span className="text-muted-foreground">Last generated:</span> {format(new Date(active.last_generated_date), 'PP')}</p>}
-            {nextDate && <p className="text-primary"><span className="text-muted-foreground">Next:</span> <span className="font-semibold">{format(new Date(nextDate), 'PP')}</span></p>}
+            {nextOccurrence && (
+              <p className="text-primary">
+                <span className="text-muted-foreground">Next:</span>{' '}
+                <span className="font-semibold">{format(new Date(nextOccurrence.date), 'PP')} at {nextOccurrence.time}</span>
+              </p>
+            )}
             {active.notes && <p className="text-muted-foreground italic">{active.notes}</p>}
             <div className="flex flex-wrap gap-2 pt-2">
-              <Button size="sm" onClick={generateNext} disabled={!nextDate || generating} className="gap-1">
+              <Button size="sm" onClick={generateNext} disabled={!nextOccurrence || generating} className="gap-1">
                 {generating ? <Loader2 className="h-3 w-3 animate-spin" /> : <CalendarPlus className="h-3 w-3" />}
                 Generate Next Job
               </Button>
@@ -252,6 +249,27 @@ export default function RecurringSchedulePanel({ leadId }: { leadId: string }) {
   );
 }
 
+function buildValueFromExisting(existing: RecurringSchedule | null): RecurringScheduleValue {
+  if (!existing) return emptyRecurringValue();
+  const t: ScheduleType = existing.schedule_type === 'custom_days' ? 'every_x_days' : (existing.schedule_type as ScheduleType);
+  const ds = Array.isArray(existing.day_schedules) ? (existing.day_schedules as DaySchedule[]) : [];
+  const wk = (existing.weekdays as string[]) ?? [];
+  const nthCfg = (existing.nth_weekday ?? {}) as { week?: number; day?: string };
+  return {
+    type: t,
+    startDate: existing.start_date ?? '',
+    endDate: existing.end_date ?? '',
+    time: existing.scheduled_time?.slice(0, 5) ?? '09:00',
+    duration: existing.estimated_duration_hours ?? 2,
+    intervalDays: existing.interval_days ?? 7,
+    weekdays: wk,
+    daySchedules: ds.length ? ds : wk.map((d) => ({ day: d, time: existing.scheduled_time?.slice(0, 5) ?? '09:00' })),
+    weekNumber: nthCfg.week ?? 1,
+    nthWeekday: nthCfg.day ?? 'monday',
+    specificDates: (existing.specific_dates as string[]) ?? [],
+  };
+}
+
 function ScheduleDialog({
   open, onClose, leadId, existing, onSaved,
 }: {
@@ -261,22 +279,17 @@ function ScheduleDialog({
   existing: RecurringSchedule | null;
   onSaved: () => void;
 }) {
-  const initialType: ScheduleType = existing?.schedule_type === 'custom_days' ? 'every_x_days' : (existing?.schedule_type as ScheduleType) ?? 'weekly';
-  const [type, setType] = useState<ScheduleType>(initialType);
-  const [startDate, setStartDate] = useState<string>(existing?.start_date ?? '');
-  const [endDate, setEndDate] = useState<string>(existing?.end_date ?? '');
-  const [time, setTime] = useState(existing?.scheduled_time?.slice(0, 5) ?? '09:00');
-  const [duration, setDuration] = useState<number>(existing?.estimated_duration_hours ?? 2);
+  const [value, setValue] = useState<RecurringScheduleValue>(() => buildValueFromExisting(existing));
   const [assignedTo, setAssignedTo] = useState<string>(existing?.assigned_to ?? '');
   const [notes, setNotes] = useState<string>(existing?.notes ?? '');
-  const [intervalDays, setIntervalDays] = useState<number>(existing?.interval_days ?? 7);
-  const [weekdays, setWeekdays] = useState<string[]>((existing?.weekdays as string[]) ?? []);
-  const nthCfg = (existing?.nth_weekday ?? {}) as { week?: number; day?: string };
-  const [weekNumber, setWeekNumber] = useState<number>(nthCfg.week ?? 1);
-  const [nthWeekday, setNthWeekday] = useState<string>(nthCfg.day ?? 'monday');
-  const [specificDates, setSpecificDates] = useState<string[]>((existing?.specific_dates as string[]) ?? []);
-  const [newDate, setNewDate] = useState('');
   const [saving, setSaving] = useState(false);
+
+  // Re-init when dialog re-opens with a new existing
+  useState(() => {
+    setValue(buildValueFromExisting(existing));
+    setAssignedTo(existing?.assigned_to ?? '');
+    setNotes(existing?.notes ?? '');
+  });
 
   const { data: cleaners = [] } = useQuery({
     queryKey: ['cleaners'],
@@ -287,25 +300,11 @@ function ScheduleDialog({
   });
 
   const save = async () => {
+    if (value.type === 'specific_weekdays' && value.weekdays.length === 0) {
+      return toast.error('Pick at least one weekday');
+    }
     setSaving(true);
-    // DB schema uses separate columns. The schema_type 'every_x_days' must map to 'custom_days'.
-    const dbType = type === 'every_x_days' ? 'custom_days' : type;
-    const payload = {
-      lead_id: leadId,
-      schedule_type: dbType,
-      interval_days: type === 'every_x_days' ? intervalDays : null,
-      weekdays: type === 'specific_weekdays' ? weekdays : null,
-      nth_weekday: type === 'nth_weekday' ? { week: weekNumber, day: nthWeekday } : null,
-      specific_dates: type === 'specific_dates' ? specificDates : null,
-      start_date: startDate || null,
-      end_date: endDate || null,
-      scheduled_time: time + ':00',
-      estimated_duration_hours: duration,
-      assigned_to: assignedTo || null,
-      notes: notes || null,
-      is_active: true,
-      updated_at: new Date().toISOString(),
-    };
+    const payload = buildRecurringPayload(value, leadId, assignedTo || null, notes || null);
     const res = existing
       ? await supabase.from('recurring_schedules').update(payload).eq('id', existing.id)
       : await supabase.from('recurring_schedules').insert(payload);
@@ -320,88 +319,7 @@ function ScheduleDialog({
       <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader><DialogTitle>{existing ? 'Edit' : 'Add'} Recurring Schedule</DialogTitle></DialogHeader>
         <div className="space-y-3">
-          <div>
-            <Label>Schedule Type</Label>
-            <Select value={type} onValueChange={(v) => setType(v as ScheduleType)}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                {(Object.keys(TYPE_LABELS) as ScheduleType[]).map((t) => (
-                  <SelectItem key={t} value={t}>{TYPE_LABELS[t]}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {type === 'every_x_days' && (
-            <div><Label>Interval (days)</Label><Input type="number" min={1} value={intervalDays} onChange={(e) => setIntervalDays(Number(e.target.value))} /></div>
-          )}
-
-          {type === 'specific_weekdays' && (
-            <div>
-              <Label>Weekdays</Label>
-              <div className="flex flex-wrap gap-3 mt-1">
-                {WEEKDAYS.map((d) => (
-                  <label key={d.value} className="flex items-center gap-1 text-sm">
-                    <Checkbox checked={weekdays.includes(d.value)} onCheckedChange={(v) => setWeekdays((p) => v ? [...p, d.value] : p.filter((x) => x !== d.value))} />
-                    {d.label}
-                  </label>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {type === 'nth_weekday' && (
-            <div className="grid grid-cols-2 gap-2">
-              <div>
-                <Label>Week #</Label>
-                <Select value={String(weekNumber)} onValueChange={(v) => setWeekNumber(Number(v))}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {[1, 2, 3, 4].map((n) => <SelectItem key={n} value={String(n)}>{n}{n === 1 ? 'st' : n === 2 ? 'nd' : n === 3 ? 'rd' : 'th'}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label>Weekday</Label>
-                <Select value={nthWeekday} onValueChange={setNthWeekday}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {WEEKDAYS.map((d) => <SelectItem key={d.value} value={d.value}>{d.label}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-          )}
-
-          {type === 'specific_dates' && (
-            <div>
-              <Label>Specific Dates</Label>
-              <div className="flex gap-2 mt-1">
-                <Input type="date" value={newDate} onChange={(e) => setNewDate(e.target.value)} />
-                <Button type="button" onClick={() => { if (newDate && !specificDates.includes(newDate)) { setSpecificDates([...specificDates, newDate]); setNewDate(''); } }}>Add</Button>
-              </div>
-              <div className="flex flex-wrap gap-1 mt-2">
-                {specificDates.map((d) => (
-                  <span key={d} className="inline-flex items-center gap-1 text-xs bg-muted px-2 py-1 rounded">
-                    {d}
-                    <X className="h-3 w-3 cursor-pointer" onClick={() => setSpecificDates(specificDates.filter((x) => x !== d))} />
-                  </span>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {type !== 'specific_dates' && (
-            <div className="grid grid-cols-2 gap-2">
-              <div><Label>Start Date</Label><Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} /></div>
-              <div><Label>End Date</Label><Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} /></div>
-            </div>
-          )}
-
-          <div className="grid grid-cols-2 gap-2">
-            <div><Label>Time</Label><Input type="time" value={time} onChange={(e) => setTime(e.target.value)} /></div>
-            <div><Label>Duration (hrs)</Label><Input type="number" step="0.5" value={duration} onChange={(e) => setDuration(Number(e.target.value))} /></div>
-          </div>
+          <RecurringScheduleFields value={value} onChange={setValue} />
 
           <div>
             <Label>Assigned Cleaner</Label>
@@ -413,7 +331,10 @@ function ScheduleDialog({
             </Select>
           </div>
 
-          <div><Label>Notes</Label><Textarea value={notes} onChange={(e) => setNotes(e.target.value)} /></div>
+          <div>
+            <Label>Notes</Label>
+            <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} />
+          </div>
         </div>
         <DialogFooter>
           <Button variant="ghost" onClick={onClose}>Cancel</Button>
@@ -426,3 +347,6 @@ function ScheduleDialog({
     </Dialog>
   );
 }
+
+// Re-export for legacy imports if needed
+export { TYPE_LABELS, WEEKDAYS };
