@@ -176,10 +176,16 @@ function BookingDialog({ open, onClose, email, address }: { open: boolean; onClo
   const submit = async () => {
     setSubmitting(true);
     try {
+      const prefixedNotes = `CLIENT PORTAL REQUEST: ${form.notes}`.trim();
       const res = await fetch(`${N8N_BASE_URL}/new-lead`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...form, email, source: 'client_portal' }),
+        body: JSON.stringify({
+          ...form,
+          notes: prefixedNotes,
+          email,
+          source: 'website',
+        }),
       });
       if (!res.ok) throw new Error();
       setDone(true);

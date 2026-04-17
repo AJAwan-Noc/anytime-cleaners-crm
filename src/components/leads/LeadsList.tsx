@@ -289,7 +289,14 @@ export default function LeadsList() {
                       />
                     </TableCell>
                   )}
-                  <TableCell className="font-medium">{lead.full_name}</TableCell>
+                  <TableCell className="font-medium">
+                    <div className="flex items-center gap-2">
+                      {lead.full_name}
+                      {lead.notes?.startsWith('CLIENT PORTAL REQUEST:') && (
+                        <Badge variant="outline" className="text-xs border-primary/40 text-primary">Portal</Badge>
+                      )}
+                    </div>
+                  </TableCell>
                   <TableCell>{lead.phone}</TableCell>
                   <TableCell>{lead.service_type}</TableCell>
                   <TableCell className="capitalize">{lead.source}</TableCell>
