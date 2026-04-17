@@ -268,6 +268,22 @@ function JobDetailDialog({
     enabled: canEdit,
   });
 
+  const { data: property } = useQuery({
+    queryKey: ['job-property', job?.lead_id],
+    enabled: !!job?.lead_id,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('properties')
+        .select('access_code, parking_notes, special_instructions, address')
+        .eq('lead_id', job!.lead_id)
+        .eq('is_active', true)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      return data as { access_code: string | null; parking_notes: string | null; special_instructions: string | null; address: string } | null;
+    },
+  });
+
   if (!job) return null;
 
   const start = () => {
