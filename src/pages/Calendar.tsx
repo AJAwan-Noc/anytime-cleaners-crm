@@ -462,7 +462,6 @@ function CreateJobDialog({ open, onClose, onCreated }: { open: boolean; onClose:
         status: 'scheduled',
         notes: form.notes || null,
         is_recurring: form.is_recurring,
-        service_type: form.service_type || lead?.service_type || null,
       })
       .select()
       .single();
@@ -470,17 +469,23 @@ function CreateJobDialog({ open, onClose, onCreated }: { open: boolean; onClose:
       toast.error(error.message);
       return;
     }
+    if (!data?.id) {
+      toast.error('Job created but no ID returned');
+      return;
+    }
+    console.log('[calendar] POST /job-assigned', { job_id: data.id });
     await fetch(`${N8N_BASE_URL}/job-assigned`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ job_id: data.id }),
-    }).catch(() => null);
+    }).catch((e) => console.error('n8n /job-assigned failed', e));
     await logActivity({
       event_type: 'job_created',
       actor_id: teamMember?.id,
       actor_name: teamMember?.name,
       entity_type: 'job',
       entity_id: data.id,
+      entity_name: lead?.full_name,
       description: `Job scheduled for ${lead?.full_name ?? ''}`,
     });
     toast.success('Job created');
