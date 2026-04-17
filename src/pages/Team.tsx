@@ -48,15 +48,15 @@ const emptyForm: MemberForm = { name: '', email: '', phone: '', role: 'agent' };
 
 /** Which roles can the current user create/edit? */
 function getAllowedRoles(currentRole: Role | null): Role[] {
-  if (currentRole === 'owner') return ['owner', 'admin', 'manager', 'agent'];
-  if (currentRole === 'admin') return ['manager', 'agent'];
+  if (currentRole === 'owner') return ['owner', 'admin', 'manager', 'agent', 'cleaner', 'client'];
+  if (currentRole === 'admin') return ['manager', 'agent', 'cleaner', 'client'];
   return [];
 }
 
 /** Can the current user see/manage a given member row? */
 function canManageRow(currentRole: Role | null, targetRole: Role): boolean {
   if (currentRole === 'owner') return true;
-  if (currentRole === 'admin') return targetRole === 'manager' || targetRole === 'agent';
+  if (currentRole === 'admin') return targetRole === 'manager' || targetRole === 'agent' || targetRole === 'cleaner' || targetRole === 'client';
   return false;
 }
 
@@ -101,7 +101,7 @@ export default function Team() {
   // Filter visible members based on role hierarchy
   const members = allMembers.filter((m) => {
     if (currentRole === 'owner' || currentRole === 'manager') return true;
-    if (currentRole === 'admin') return m.role === 'manager' || m.role === 'agent';
+    if (currentRole === 'admin') return m.role === 'manager' || m.role === 'agent' || m.role === 'cleaner' || m.role === 'client';
     return false;
   });
 
