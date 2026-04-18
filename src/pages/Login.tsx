@@ -23,7 +23,6 @@ export default function Login() {
   }
 
   if (user) {
-    if (role === 'client') return <Navigate to="/portal" replace />;
     return <Navigate to="/" replace />;
   }
 
