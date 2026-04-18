@@ -53,8 +53,8 @@ const CLEANER_TYPES: CleanerType[] = ['residential', 'commercial', 'specialist',
 
 /** Which roles can the current user create/edit? */
 function getAllowedRoles(currentRole: Role | null): Role[] {
-  if (currentRole === 'owner') return ['owner', 'admin', 'manager', 'agent', 'cleaner', 'client'];
-  if (currentRole === 'admin') return ['manager', 'agent', 'cleaner', 'client'];
+  if (currentRole === 'owner') return ['owner', 'admin', 'manager', 'agent', 'cleaner'];
+  if (currentRole === 'admin') return ['manager', 'agent', 'cleaner'];
   return [];
 }
 
