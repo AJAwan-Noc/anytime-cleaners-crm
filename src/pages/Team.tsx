@@ -468,25 +468,15 @@ export default function Team() {
           </DialogHeader>
           <div className="space-y-4 py-2">
             <div className="space-y-2">
-              <Label>Name *</Label>
-              <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
-            </div>
-            <div className="space-y-2">
-              <Label>Email *</Label>
-              <Input
-                type="email"
-                value={form.email}
-                onChange={(e) => setForm({ ...form, email: e.target.value })}
-                disabled={!!editingId}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Phone</Label>
-              <Input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
-            </div>
-            <div className="space-y-2">
               <Label>Role</Label>
-              <Select value={form.role} onValueChange={(v) => setForm({ ...form, role: v as Role })}>
+              <Select
+                value={form.role}
+                onValueChange={(v) => {
+                  const newRole = v as Role;
+                  setForm({ ...form, role: newRole, lead_id: newRole === 'client' ? form.lead_id : null });
+                }}
+                disabled={!!editingId}
+              >
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -499,6 +489,42 @@ export default function Team() {
                 </SelectContent>
               </Select>
             </div>
+
+            {form.role === 'client' && !editingId ? (
+              <ClientLeadPicker
+                form={form}
+                onPick={(lead) =>
+                  setForm({
+                    ...form,
+                    lead_id: lead.id,
+                    name: lead.full_name,
+                    email: lead.email ?? '',
+                    phone: lead.phone ?? '',
+                  })
+                }
+                onClear={() => setForm({ ...form, lead_id: null, name: '', email: '', phone: '' })}
+              />
+            ) : (
+              <>
+                <div className="space-y-2">
+                  <Label>Name *</Label>
+                  <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Email *</Label>
+                  <Input
+                    type="email"
+                    value={form.email}
+                    onChange={(e) => setForm({ ...form, email: e.target.value })}
+                    disabled={!!editingId}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Phone</Label>
+                  <Input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
+                </div>
+              </>
+            )}
             {form.role === 'cleaner' && (
               <div className="space-y-2">
                 <Label>Cleaner Type</Label>
