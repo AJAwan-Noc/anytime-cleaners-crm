@@ -105,7 +105,7 @@ export default function Login() {
         </div>
 
         <p className="text-center text-xs text-white/40 mt-6">
-          © {new Date().getFullYear()} Anytime Cleaners CRM
+          © {new Date().getFullYear()} Anytime Cleaners CRM — Powered By Noctix AI
         </p>
       </div>
     </div>
