@@ -154,16 +154,11 @@ export default function AdminSettings() {
   const cfg = configMap(configRows);
 
   // ── local state per section ──
-  const [messaging, setMessaging] = useState({ welcome_sms_template: '', welcome_email_subject: '' });
   const [company, setCompany] = useState({ tax_rate: '' });
   const [automation, setAutomation] = useState({ follow_up_days: '' });
 
   useEffect(() => {
     if (configRows.length) {
-      setMessaging({
-        welcome_sms_template: cfg.welcome_sms_template ?? '',
-        welcome_email_subject: cfg.welcome_email_subject ?? '',
-      });
       setCompany({ tax_rate: cfg.tax_rate ?? '' });
       setAutomation({ follow_up_days: cfg.follow_up_days ?? '' });
     }
@@ -263,40 +258,17 @@ export default function AdminSettings() {
       <h1 className="text-2xl font-bold">Admin Settings</h1>
 
       {/* ── Default Message Templates ── */}
-      <SettingsSection
-        title="Default Message Templates"
-        description="These are the default subject lines and SMS templates used for automated messages. For full email template editing including layout, colors, and content, go to Email Templates in the sidebar."
-        saving={savingSection === 'Messaging'}
-        onSave={() => saveKeys(messaging, 'Messaging')}
-      >
-        <div className="space-y-1">
-          <Label>Welcome SMS Template</Label>
-          <Textarea
-            rows={3}
-            value={messaging.welcome_sms_template}
-            onChange={(e) => setMessaging((p) => ({ ...p, welcome_sms_template: e.target.value }))}
-            placeholder="Hi {name}, thanks for choosing us for your {service}..."
-          />
-          {messaging.welcome_sms_template && (
-            <p className="text-xs text-muted-foreground mt-1 border rounded p-2 bg-muted/30">
-              <span className="font-medium">Preview:</span> {replaceVars(messaging.welcome_sms_template)}
-            </p>
-          )}
-        </div>
-        <div className="space-y-1">
-          <Label>Welcome Email Subject</Label>
-          <Input
-            value={messaging.welcome_email_subject}
-            onChange={(e) => setMessaging((p) => ({ ...p, welcome_email_subject: e.target.value }))}
-            placeholder="Welcome {name} — {service} Booking"
-          />
-          {messaging.welcome_email_subject && (
-            <p className="text-xs text-muted-foreground mt-1 border rounded p-2 bg-muted/30">
-              <span className="font-medium">Preview:</span> {replaceVars(messaging.welcome_email_subject)}
-            </p>
-          )}
-        </div>
-      </SettingsSection>
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">Default Message Templates</CardTitle>
+          <CardDescription>How automated messages are managed.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="rounded-md border bg-muted/30 p-4 text-sm text-muted-foreground">
+            Email templates are fully managed in the <span className="font-medium text-foreground">Email Templates</span> section in the sidebar. SMS templates will be available when SMS is configured.
+          </div>
+        </CardContent>
+      </Card>
 
       {/* ── Service Types ── */}
       <ServiceTypesSection />
@@ -304,7 +276,7 @@ export default function AdminSettings() {
       {/* ── Company ── */}
       <SettingsSection
         title="Company"
-        description="Operational company settings used on invoices."
+        description="Tax rate applied to invoices."
         saving={savingSection === 'Company'}
         onSave={() => {
           const rate = Number(company.tax_rate);
@@ -330,39 +302,91 @@ export default function AdminSettings() {
           </div>
         </div>
         <p className="text-xs text-muted-foreground">
-          Company name and invoice prefix are configured at setup. Contact support to change these.
+          Company name and invoice prefix are fixed at setup.
         </p>
       </SettingsSection>
 
       {/* ── Automation Rules ── */}
-      <SettingsSection
-        title="Automation Rules"
-        description="These rules control how the system behaves automatically. Follow-Up Days: number of days after last contact before a lead is marked as Not Responding and a follow-up email is sent. All automated workflows run daily at 9AM Sydney time."
-        saving={savingSection === 'Automation'}
-        onSave={() => {
-          const d = Number(automation.follow_up_days);
-          if (isNaN(d) || d < 1 || d > 30) {
-            toast.error('Follow-up days must be between 1 and 30');
-            return;
-          }
-          saveKeys(automation, 'Automation');
-        }}
-      >
-        <div className="space-y-1">
-          <div className="flex items-center gap-2">
-            <Label>Days before auto follow-up</Label>
-            <Badge className="bg-green-100 text-green-800" variant="secondary">Active</Badge>
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">Automation Rules</CardTitle>
+          <CardDescription>Background workflows that run automatically. Only Lead Follow-Up has a configurable setting.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {/* Rule 1 — Lead Follow-Up */}
+          <div className="rounded-lg border p-4 space-y-3">
+            <div className="flex items-start justify-between gap-2">
+              <h3 className="font-semibold text-sm">Lead Follow-Up</h3>
+              <Badge className="bg-green-100 text-green-800 hover:bg-green-100" variant="secondary">Active</Badge>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Leads in Contacted stage with no update for the configured number of days are automatically moved to Not Responding and sent a follow-up email.
+            </p>
+            <div className="space-y-1 pt-1">
+              <Label className="text-xs">Follow-Up Days</Label>
+              <div className="flex items-center gap-2">
+                <Input
+                  type="number"
+                  min={1}
+                  max={30}
+                  value={automation.follow_up_days}
+                  onChange={(e) => setAutomation({ follow_up_days: e.target.value })}
+                  className="max-w-[120px]"
+                />
+                <Button
+                  size="sm"
+                  onClick={() => {
+                    const d = Number(automation.follow_up_days);
+                    if (isNaN(d) || d < 1 || d > 30) {
+                      toast.error('Follow-up days must be between 1 and 30');
+                      return;
+                    }
+                    saveKeys(automation, 'Automation');
+                  }}
+                  disabled={savingSection === 'Automation'}
+                  className="gap-2"
+                >
+                  {savingSection === 'Automation' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                  Save
+                </Button>
+              </div>
+            </div>
           </div>
-          <Input
-            type="number"
-            min={1}
-            max={30}
-            value={automation.follow_up_days}
-            onChange={(e) => setAutomation({ follow_up_days: e.target.value })}
-            className="max-w-[120px]"
-          />
-        </div>
-      </SettingsSection>
+
+          {/* Rule 2 — Invoice Overdue Detection */}
+          <div className="rounded-lg border p-4 space-y-2">
+            <div className="flex items-start justify-between gap-2">
+              <h3 className="font-semibold text-sm">Invoice Overdue Detection</h3>
+              <Badge className="bg-green-100 text-green-800 hover:bg-green-100" variant="secondary">Active</Badge>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Invoices with sent status are automatically marked as Overdue if unpaid 14 days after the service date. Runs daily at 9AM Sydney time.
+            </p>
+          </div>
+
+          {/* Rule 3 — Feedback Request */}
+          <div className="rounded-lg border p-4 space-y-2">
+            <div className="flex items-start justify-between gap-2">
+              <h3 className="font-semibold text-sm">Feedback Request</h3>
+              <Badge className="bg-green-100 text-green-800 hover:bg-green-100" variant="secondary">Active</Badge>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              A feedback request email is automatically sent to clients 24 hours after their lead is moved to Booked stage, if feedback has not already been requested.
+            </p>
+          </div>
+
+          {/* Rule 4 — Recurring Job Generator */}
+          <div className="rounded-lg border p-4 space-y-2">
+            <div className="flex items-start justify-between gap-2">
+              <h3 className="font-semibold text-sm">Recurring Job Generator</h3>
+              <Badge className="bg-green-100 text-green-800 hover:bg-green-100" variant="secondary">Active</Badge>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Active recurring schedules are checked daily and new jobs are automatically created and assigned based on each schedule's rules. Cleaner is notified by email when a new job is generated.
+            </p>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* ── Notification Recipients ── */}
       <Card>
