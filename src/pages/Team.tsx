@@ -353,7 +353,13 @@ export default function Team() {
               return (
                 <TableRow key={m.id}>
                   <TableCell className="font-medium max-w-[180px]">
-                    <div className="truncate">{m.name}</div>
+                    {m.role === 'client' && m.lead_id ? (
+                      <Link to={`/leads/${m.lead_id}`} className="text-primary hover:underline truncate block">
+                        {m.name}
+                      </Link>
+                    ) : (
+                      <div className="truncate">{m.name}</div>
+                    )}
                     <div className="md:hidden text-xs text-muted-foreground truncate">{m.email}</div>
                   </TableCell>
                   <TableCell className="hidden md:table-cell max-w-[200px] truncate">{m.email}</TableCell>
@@ -378,17 +384,27 @@ export default function Team() {
                   <TableCell className="hidden md:table-cell text-right">{leadCounts[m.id] || 0}</TableCell>
                   {canWrite && (
                     <TableCell>
-                      <Button variant="ghost" size="icon" onClick={() => setStatsTarget(m)} title="View Stats">
-                        <BarChart3 className="h-4 w-4" />
-                      </Button>
+                      {m.role !== 'client' && (
+                        <Button variant="ghost" size="icon" onClick={() => setStatsTarget(m)} title="View Stats">
+                          <BarChart3 className="h-4 w-4" />
+                        </Button>
+                      )}
                     </TableCell>
                   )}
                   {canWrite && (
                     <TableCell>
                       {manageable && (
-                        <Button variant="ghost" size="icon" onClick={() => openEdit(m)}>
-                          <Pencil className="h-4 w-4" />
-                        </Button>
+                        m.role === 'client' && m.lead_id ? (
+                          <Button variant="ghost" size="icon" asChild title="Open lead">
+                            <Link to={`/leads/${m.lead_id}`}>
+                              <Pencil className="h-4 w-4" />
+                            </Link>
+                          </Button>
+                        ) : (
+                          <Button variant="ghost" size="icon" onClick={() => openEdit(m)}>
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                        )
                       )}
                     </TableCell>
                   )}
