@@ -7,6 +7,7 @@ import { logActivity } from '@/lib/activityLog';
 import { toast } from 'sonner';
 import { Loader2, Plus, Pencil, Trash2, Users, KeyRound, BarChart3 } from 'lucide-react';
 import MemberStatsDialog from '@/components/team/MemberStatsDialog';
+import CleanerPerformance from '@/components/dashboard/CleanerPerformance';
 import {
   Table, TableHeader, TableBody, TableRow, TableHead, TableCell,
 } from '@/components/ui/table';
@@ -408,6 +409,11 @@ export default function Team() {
           </TableBody>
         </Table>
       </div>
+
+      {/* Cleaner Performance (admin/manager) */}
+      {(currentRole === 'owner' || currentRole === 'admin' || currentRole === 'manager') && (
+        <CleanerPerformance />
+      )}
 
       {/* Bar Chart */}
       {chartData.length > 0 && (
