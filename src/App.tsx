@@ -23,7 +23,6 @@ import EmailTemplateEditor from '@/pages/EmailTemplateEditor';
 import PublicFeedback from '@/pages/PublicFeedback';
 import CalendarPage from '@/pages/Calendar';
 import ActivityPage from '@/pages/Activity';
-import ClientPortal from '@/pages/ClientPortal';
 import Profile from '@/pages/Profile';
 import NotFound from '@/pages/NotFound';
 
@@ -39,68 +38,18 @@ const App = () => (
             <Route path="/login" element={<Login />} />
             <Route path="/feedback" element={<PublicFeedback />} />
             <Route
-              path="/portal"
-              element={
-                <ProtectedRoute allowedRoles={['client']}>
-                  <ClientPortal />
-                </ProtectedRoute>
-              }
-            />
-            <Route
               element={
                 <ProtectedRoute>
                   <AppLayout />
                 </ProtectedRoute>
               }
             >
-              <Route
-                path="/"
-                element={
-                  <ProtectedRoute allowedRoles={['owner', 'admin', 'manager', 'agent', 'cleaner']}>
-                    <Dashboard />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/calendar"
-                element={
-                  <ProtectedRoute allowedRoles={['owner', 'admin', 'manager', 'agent', 'cleaner']}>
-                    <CalendarPage />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/pipeline"
-                element={
-                  <ProtectedRoute allowedRoles={['owner', 'admin', 'manager', 'agent', 'cleaner']}>
-                    <Pipeline />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/leads"
-                element={
-                  <ProtectedRoute allowedRoles={['owner', 'admin', 'manager', 'agent', 'cleaner']}>
-                    <Leads />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/leads/new"
-                element={
-                  <ProtectedRoute allowedRoles={['owner', 'admin', 'manager', 'agent', 'cleaner']}>
-                    <NewLeadPage />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/leads/:id"
-                element={
-                  <ProtectedRoute allowedRoles={['owner', 'admin', 'manager', 'agent', 'cleaner']}>
-                    <LeadDetailPage />
-                  </ProtectedRoute>
-                }
-              />
+              <Route path="/" element={<Dashboard />} />
+              <Route path="/calendar" element={<CalendarPage />} />
+              <Route path="/pipeline" element={<Pipeline />} />
+              <Route path="/leads" element={<Leads />} />
+              <Route path="/leads/new" element={<NewLeadPage />} />
+              <Route path="/leads/:id" element={<LeadDetailPage />} />
               <Route path="/profile" element={<Profile />} />
               <Route
                 path="/properties"
