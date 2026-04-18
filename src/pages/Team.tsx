@@ -1,11 +1,12 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase, N8N_BASE_URL } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { TeamMember, Role, CleanerType } from '@/types';
 import { logActivity } from '@/lib/activityLog';
 import { toast } from 'sonner';
-import { Loader2, Plus, Pencil, Trash2, Users, KeyRound, BarChart3 } from 'lucide-react';
+import { Loader2, Plus, Pencil, Trash2, Users, KeyRound, BarChart3, Search, X } from 'lucide-react';
 import MemberStatsDialog from '@/components/team/MemberStatsDialog';
 import CleanerPerformance from '@/components/dashboard/CleanerPerformance';
 import {
@@ -45,9 +46,10 @@ interface MemberForm {
   phone: string;
   role: Role;
   cleaner_type: CleanerType | '';
+  lead_id: string | null;
 }
 
-const emptyForm: MemberForm = { name: '', email: '', phone: '', role: 'agent', cleaner_type: '' };
+const emptyForm: MemberForm = { name: '', email: '', phone: '', role: 'agent', cleaner_type: '', lead_id: null };
 
 const CLEANER_TYPES: CleanerType[] = ['residential', 'commercial', 'specialist', 'general'];
 
@@ -151,13 +153,17 @@ export default function Team() {
 
   const openEdit = (m: TeamMember) => {
     setEditingId(m.id);
-    setForm({ name: m.name, email: m.email, phone: m.phone || '', role: m.role, cleaner_type: (m.cleaner_type as CleanerType) || '' });
+    setForm({ name: m.name, email: m.email, phone: m.phone || '', role: m.role, cleaner_type: (m.cleaner_type as CleanerType) || '', lead_id: m.lead_id ?? null });
     setModalOpen(true);
   };
 
   const handleSubmit = async () => {
     if (!form.name.trim() || !form.email.trim()) {
       toast.error('Name and email are required');
+      return;
+    }
+    if (!editingId && form.role === 'client' && !form.lead_id) {
+      toast.error('Please select a lead for this client account');
       return;
     }
     setSubmitting(true);
@@ -175,7 +181,15 @@ export default function Team() {
         const res = await fetch(`${N8N_BASE_URL}/create-team-member`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name: form.name, email: form.email, phone: form.phone || null, role: form.role, cleaner_type, password: 'Welcome123!' }),
+          body: JSON.stringify({
+            name: form.name,
+            email: form.email,
+            phone: form.phone || null,
+            role: form.role,
+            cleaner_type,
+            password: 'Welcome123!',
+            lead_id: form.role === 'client' ? form.lead_id : null,
+          }),
         });
         const data = await res.json();
         if (!res.ok || data.success === false) {
