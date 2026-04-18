@@ -240,6 +240,7 @@ export interface NotificationRecipient {
   notify_new_lead: boolean;
   notify_stage_change: boolean;
   notify_invoice: boolean;
+  notify_report: boolean;
   created_at: string;
 }
 

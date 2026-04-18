@@ -233,6 +233,7 @@ export default function AdminSettings() {
         notify_new_lead: true,
         notify_stage_change: true,
         notify_invoice: true,
+        notify_report: true,
       });
       if (error) throw error;
     },
@@ -451,6 +452,7 @@ export default function AdminSettings() {
                   <TableHead className="text-center">New Lead</TableHead>
                   <TableHead className="text-center">Stage Change</TableHead>
                   <TableHead className="text-center">Invoice</TableHead>
+                  <TableHead className="text-center">Reports</TableHead>
                   <TableHead className="text-center">Active</TableHead>
                   <TableHead />
                 </TableRow>
@@ -476,6 +478,12 @@ export default function AdminSettings() {
                       <Switch
                         checked={r.notify_invoice}
                         onCheckedChange={(v) => toggleRecipientField(r.id, 'notify_invoice', v)}
+                      />
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <Switch
+                        checked={r.notify_report}
+                        onCheckedChange={(v) => toggleRecipientField(r.id, 'notify_report', v)}
                       />
                     </TableCell>
                     <TableCell className="text-center">
