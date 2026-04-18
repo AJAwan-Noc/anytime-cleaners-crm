@@ -22,6 +22,7 @@ export default function ProtectedRoute({ children, allowedRoles }: ProtectedRout
   if (!user) return <Navigate to="/login" replace />;
 
   if (allowedRoles && role && !allowedRoles.includes(role)) {
+    if (role === 'client') return <Navigate to="/portal" replace />;
     return <Navigate to="/" replace />;
   }
 

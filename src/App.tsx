@@ -53,7 +53,14 @@ const App = () => (
                 </ProtectedRoute>
               }
             >
-              <Route path="/" element={<Dashboard />} />
+              <Route
+                path="/"
+                element={
+                  <ProtectedRoute allowedRoles={['owner', 'admin', 'manager', 'agent', 'cleaner']}>
+                    <Dashboard />
+                  </ProtectedRoute>
+                }
+              />
               <Route
                 path="/calendar"
                 element={
@@ -62,10 +69,38 @@ const App = () => (
                   </ProtectedRoute>
                 }
               />
-              <Route path="/pipeline" element={<Pipeline />} />
-              <Route path="/leads" element={<Leads />} />
-              <Route path="/leads/new" element={<NewLeadPage />} />
-              <Route path="/leads/:id" element={<LeadDetailPage />} />
+              <Route
+                path="/pipeline"
+                element={
+                  <ProtectedRoute allowedRoles={['owner', 'admin', 'manager', 'agent', 'cleaner']}>
+                    <Pipeline />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/leads"
+                element={
+                  <ProtectedRoute allowedRoles={['owner', 'admin', 'manager', 'agent', 'cleaner']}>
+                    <Leads />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/leads/new"
+                element={
+                  <ProtectedRoute allowedRoles={['owner', 'admin', 'manager', 'agent', 'cleaner']}>
+                    <NewLeadPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/leads/:id"
+                element={
+                  <ProtectedRoute allowedRoles={['owner', 'admin', 'manager', 'agent', 'cleaner']}>
+                    <LeadDetailPage />
+                  </ProtectedRoute>
+                }
+              />
               <Route path="/profile" element={<Profile />} />
               <Route
                 path="/properties"

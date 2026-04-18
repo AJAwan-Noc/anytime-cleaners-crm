@@ -1,11 +1,12 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase, N8N_BASE_URL } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { TeamMember, Role, CleanerType } from '@/types';
 import { logActivity } from '@/lib/activityLog';
 import { toast } from 'sonner';
-import { Loader2, Plus, Pencil, Trash2, Users, KeyRound, BarChart3 } from 'lucide-react';
+import { Loader2, Plus, Pencil, Trash2, Users, KeyRound, BarChart3, Search, X } from 'lucide-react';
 import MemberStatsDialog from '@/components/team/MemberStatsDialog';
 import CleanerPerformance from '@/components/dashboard/CleanerPerformance';
 import {
@@ -45,9 +46,10 @@ interface MemberForm {
   phone: string;
   role: Role;
   cleaner_type: CleanerType | '';
+  lead_id: string | null;
 }
 
-const emptyForm: MemberForm = { name: '', email: '', phone: '', role: 'agent', cleaner_type: '' };
+const emptyForm: MemberForm = { name: '', email: '', phone: '', role: 'agent', cleaner_type: '', lead_id: null };
 
 const CLEANER_TYPES: CleanerType[] = ['residential', 'commercial', 'specialist', 'general'];
 
@@ -151,13 +153,17 @@ export default function Team() {
 
   const openEdit = (m: TeamMember) => {
     setEditingId(m.id);
-    setForm({ name: m.name, email: m.email, phone: m.phone || '', role: m.role, cleaner_type: (m.cleaner_type as CleanerType) || '' });
+    setForm({ name: m.name, email: m.email, phone: m.phone || '', role: m.role, cleaner_type: (m.cleaner_type as CleanerType) || '', lead_id: m.lead_id ?? null });
     setModalOpen(true);
   };
 
   const handleSubmit = async () => {
     if (!form.name.trim() || !form.email.trim()) {
       toast.error('Name and email are required');
+      return;
+    }
+    if (!editingId && form.role === 'client' && !form.lead_id) {
+      toast.error('Please select a lead for this client account');
       return;
     }
     setSubmitting(true);
@@ -175,7 +181,15 @@ export default function Team() {
         const res = await fetch(`${N8N_BASE_URL}/create-team-member`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name: form.name, email: form.email, phone: form.phone || null, role: form.role, cleaner_type, password: 'Welcome123!' }),
+          body: JSON.stringify({
+            name: form.name,
+            email: form.email,
+            phone: form.phone || null,
+            role: form.role,
+            cleaner_type,
+            password: 'Welcome123!',
+            lead_id: form.role === 'client' ? form.lead_id : null,
+          }),
         });
         const data = await res.json();
         if (!res.ok || data.success === false) {
@@ -339,7 +353,13 @@ export default function Team() {
               return (
                 <TableRow key={m.id}>
                   <TableCell className="font-medium max-w-[180px]">
-                    <div className="truncate">{m.name}</div>
+                    {m.role === 'client' && m.lead_id ? (
+                      <Link to={`/leads/${m.lead_id}`} className="text-primary hover:underline truncate block">
+                        {m.name}
+                      </Link>
+                    ) : (
+                      <div className="truncate">{m.name}</div>
+                    )}
                     <div className="md:hidden text-xs text-muted-foreground truncate">{m.email}</div>
                   </TableCell>
                   <TableCell className="hidden md:table-cell max-w-[200px] truncate">{m.email}</TableCell>
@@ -364,17 +384,27 @@ export default function Team() {
                   <TableCell className="hidden md:table-cell text-right">{leadCounts[m.id] || 0}</TableCell>
                   {canWrite && (
                     <TableCell>
-                      <Button variant="ghost" size="icon" onClick={() => setStatsTarget(m)} title="View Stats">
-                        <BarChart3 className="h-4 w-4" />
-                      </Button>
+                      {m.role !== 'client' && (
+                        <Button variant="ghost" size="icon" onClick={() => setStatsTarget(m)} title="View Stats">
+                          <BarChart3 className="h-4 w-4" />
+                        </Button>
+                      )}
                     </TableCell>
                   )}
                   {canWrite && (
                     <TableCell>
                       {manageable && (
-                        <Button variant="ghost" size="icon" onClick={() => openEdit(m)}>
-                          <Pencil className="h-4 w-4" />
-                        </Button>
+                        m.role === 'client' && m.lead_id ? (
+                          <Button variant="ghost" size="icon" asChild title="Open lead">
+                            <Link to={`/leads/${m.lead_id}`}>
+                              <Pencil className="h-4 w-4" />
+                            </Link>
+                          </Button>
+                        ) : (
+                          <Button variant="ghost" size="icon" onClick={() => openEdit(m)}>
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                        )
                       )}
                     </TableCell>
                   )}
@@ -438,25 +468,15 @@ export default function Team() {
           </DialogHeader>
           <div className="space-y-4 py-2">
             <div className="space-y-2">
-              <Label>Name *</Label>
-              <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
-            </div>
-            <div className="space-y-2">
-              <Label>Email *</Label>
-              <Input
-                type="email"
-                value={form.email}
-                onChange={(e) => setForm({ ...form, email: e.target.value })}
-                disabled={!!editingId}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Phone</Label>
-              <Input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
-            </div>
-            <div className="space-y-2">
               <Label>Role</Label>
-              <Select value={form.role} onValueChange={(v) => setForm({ ...form, role: v as Role })}>
+              <Select
+                value={form.role}
+                onValueChange={(v) => {
+                  const newRole = v as Role;
+                  setForm({ ...form, role: newRole, lead_id: newRole === 'client' ? form.lead_id : null });
+                }}
+                disabled={!!editingId}
+              >
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -469,6 +489,42 @@ export default function Team() {
                 </SelectContent>
               </Select>
             </div>
+
+            {form.role === 'client' && !editingId ? (
+              <ClientLeadPicker
+                form={form}
+                onPick={(lead) =>
+                  setForm({
+                    ...form,
+                    lead_id: lead.id,
+                    name: lead.full_name,
+                    email: lead.email ?? '',
+                    phone: lead.phone ?? '',
+                  })
+                }
+                onClear={() => setForm({ ...form, lead_id: null, name: '', email: '', phone: '' })}
+              />
+            ) : (
+              <>
+                <div className="space-y-2">
+                  <Label>Name *</Label>
+                  <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Email *</Label>
+                  <Input
+                    type="email"
+                    value={form.email}
+                    onChange={(e) => setForm({ ...form, email: e.target.value })}
+                    disabled={!!editingId}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Phone</Label>
+                  <Input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
+                </div>
+              </>
+            )}
             {form.role === 'cleaner' && (
               <div className="space-y-2">
                 <Label>Cleaner Type</Label>
@@ -566,3 +622,111 @@ export default function Team() {
     </div>
   );
 }
+
+interface LeadOption {
+  id: string;
+  full_name: string;
+  email: string | null;
+  phone: string | null;
+}
+
+function ClientLeadPicker({
+  form,
+  onPick,
+  onClear,
+}: {
+  form: MemberForm;
+  onPick: (lead: LeadOption) => void;
+  onClear: () => void;
+}) {
+  const [query, setQuery] = useState('');
+
+  const { data: usedLeadIds = new Set<string>() } = useQuery({
+    queryKey: ['client-team-lead-ids'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('team_members')
+        .select('lead_id')
+        .eq('role', 'client');
+      if (error) throw error;
+      return new Set((data ?? []).map((r: any) => r.lead_id).filter(Boolean) as string[]);
+    },
+  });
+
+  const { data: results = [], isFetching } = useQuery({
+    queryKey: ['client-lead-search', query],
+    enabled: !form.lead_id && query.trim().length > 0,
+    queryFn: async () => {
+      const q = query.trim().replace(/[%,]/g, '');
+      const { data, error } = await supabase
+        .from('leads')
+        .select('id, full_name, email, phone')
+        .or(`full_name.ilike.%${q}%,email.ilike.%${q}%`)
+        .limit(20);
+      if (error) throw error;
+      return (data ?? []) as LeadOption[];
+    },
+  });
+
+  const filtered = results.filter((l) => !usedLeadIds.has(l.id));
+
+  if (form.lead_id) {
+    return (
+      <div className="space-y-2">
+        <Label>Linked Lead *</Label>
+        <div className="rounded-md border bg-muted/30 p-3 flex items-start justify-between gap-2">
+          <div className="text-sm min-w-0">
+            <p className="font-medium truncate">{form.name}</p>
+            <p className="text-xs text-muted-foreground truncate">{form.email}</p>
+            {form.phone && <p className="text-xs text-muted-foreground truncate">{form.phone}</p>}
+          </div>
+          <Button type="button" variant="ghost" size="sm" onClick={onClear} className="gap-1 shrink-0">
+            <X className="h-3 w-3" /> Change
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-2">
+      <Label>Search Lead *</Label>
+      <div className="relative">
+        <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+        <Input
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Search by name or email…"
+          className="pl-8"
+        />
+      </div>
+      {query.trim().length > 0 && (
+        <div className="rounded-md border max-h-56 overflow-y-auto">
+          {isFetching ? (
+            <div className="p-3 text-sm text-muted-foreground flex items-center gap-2">
+              <Loader2 className="h-3 w-3 animate-spin" /> Searching…
+            </div>
+          ) : filtered.length === 0 ? (
+            <div className="p-3 text-sm text-muted-foreground">No matching leads</div>
+          ) : (
+            filtered.map((l) => (
+              <button
+                key={l.id}
+                type="button"
+                onClick={() => { onPick(l); setQuery(''); }}
+                className="w-full text-left px-3 py-2 hover:bg-muted/60 border-b last:border-b-0"
+              >
+                <p className="text-sm font-medium">{l.full_name}</p>
+                <p className="text-xs text-muted-foreground">{l.email ?? 'No email'}</p>
+              </button>
+            ))
+          )}
+        </div>
+      )}
+      <p className="text-xs text-muted-foreground">
+        Only leads without an existing client account are shown.
+      </p>
+    </div>
+  );
+}
+
