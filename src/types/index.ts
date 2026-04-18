@@ -168,7 +168,6 @@ export interface TeamMember {
   cleaner_type?: CleanerType | null;
   is_active: boolean;
   user_id: string;
-  lead_id?: string | null;
   created_at: string;
 }
 
