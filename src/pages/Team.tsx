@@ -622,3 +622,111 @@ export default function Team() {
     </div>
   );
 }
+
+interface LeadOption {
+  id: string;
+  full_name: string;
+  email: string | null;
+  phone: string | null;
+}
+
+function ClientLeadPicker({
+  form,
+  onPick,
+  onClear,
+}: {
+  form: MemberForm;
+  onPick: (lead: LeadOption) => void;
+  onClear: () => void;
+}) {
+  const [query, setQuery] = useState('');
+
+  const { data: usedLeadIds = new Set<string>() } = useQuery({
+    queryKey: ['client-team-lead-ids'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('team_members')
+        .select('lead_id')
+        .eq('role', 'client');
+      if (error) throw error;
+      return new Set((data ?? []).map((r: any) => r.lead_id).filter(Boolean) as string[]);
+    },
+  });
+
+  const { data: results = [], isFetching } = useQuery({
+    queryKey: ['client-lead-search', query],
+    enabled: !form.lead_id && query.trim().length > 0,
+    queryFn: async () => {
+      const q = query.trim().replace(/[%,]/g, '');
+      const { data, error } = await supabase
+        .from('leads')
+        .select('id, full_name, email, phone')
+        .or(`full_name.ilike.%${q}%,email.ilike.%${q}%`)
+        .limit(20);
+      if (error) throw error;
+      return (data ?? []) as LeadOption[];
+    },
+  });
+
+  const filtered = results.filter((l) => !usedLeadIds.has(l.id));
+
+  if (form.lead_id) {
+    return (
+      <div className="space-y-2">
+        <Label>Linked Lead *</Label>
+        <div className="rounded-md border bg-muted/30 p-3 flex items-start justify-between gap-2">
+          <div className="text-sm min-w-0">
+            <p className="font-medium truncate">{form.name}</p>
+            <p className="text-xs text-muted-foreground truncate">{form.email}</p>
+            {form.phone && <p className="text-xs text-muted-foreground truncate">{form.phone}</p>}
+          </div>
+          <Button type="button" variant="ghost" size="sm" onClick={onClear} className="gap-1 shrink-0">
+            <X className="h-3 w-3" /> Change
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-2">
+      <Label>Search Lead *</Label>
+      <div className="relative">
+        <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+        <Input
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Search by name or email…"
+          className="pl-8"
+        />
+      </div>
+      {query.trim().length > 0 && (
+        <div className="rounded-md border max-h-56 overflow-y-auto">
+          {isFetching ? (
+            <div className="p-3 text-sm text-muted-foreground flex items-center gap-2">
+              <Loader2 className="h-3 w-3 animate-spin" /> Searching…
+            </div>
+          ) : filtered.length === 0 ? (
+            <div className="p-3 text-sm text-muted-foreground">No matching leads</div>
+          ) : (
+            filtered.map((l) => (
+              <button
+                key={l.id}
+                type="button"
+                onClick={() => { onPick(l); setQuery(''); }}
+                className="w-full text-left px-3 py-2 hover:bg-muted/60 border-b last:border-b-0"
+              >
+                <p className="text-sm font-medium">{l.full_name}</p>
+                <p className="text-xs text-muted-foreground">{l.email ?? 'No email'}</p>
+              </button>
+            ))
+          )}
+        </div>
+      )}
+      <p className="text-xs text-muted-foreground">
+        Only leads without an existing client account are shown.
+      </p>
+    </div>
+  );
+}
+
